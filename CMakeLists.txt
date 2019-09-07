@@ -17,26 +17,20 @@ if(NOT hasParent)
 endif ()
 
 SET_MIN_VERSIONS()
-set(LibName 
+set(BaseInterfaceName render_basics)
+set(ImplName theforge)
+set(LibName ${BaseInterfaceName}_impl_${ImplName})
 project(${LibName})
 
 set(Interface
 		)
-
 set(Src
+		view.cpp
 		)
 
 set(Deps
-    al2o3_platform
+		al2o3_platform
+		al2o3_os
+		render_basics_interface
 		)
-ADD_LIB(${LibName} "${Interface}" "${Src}" "${Deps}")
-
-set( Tests
-		runner.cpp
-		)
-set( TestDeps
-		al2o3_catch2
-
-		utils_simple_logmanager)
-ADD_LIB_TESTS(${LibName} "${Interface}" "${Tests}" "${TestDeps}")
-
+ADD_LINK_TIME_IMPL(${BaseInterfaceName} ${ImplName} "${Interface}" "${Src}" "${Deps}")

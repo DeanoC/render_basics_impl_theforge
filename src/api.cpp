@@ -2,17 +2,7 @@
 #include "al2o3_memory/memory.h"
 #include "render_basics/api.h"
 #include "render_basics/theforge/api.h"
-#include "gfx_theforge/theforge.h"
-#include "gfx_shadercompiler/compiler.h"
 
-typedef struct Render_Renderer {
-	TheForge_RendererHandle renderer;
-	TheForge_QueueHandle graphicsQueue;
-	TheForge_CmdPoolHandle cmdPool;
-
-	ShaderCompiler_ContextHandle shaderCompiler;
-
-} Render_Renderer;
 
 AL2O3_EXTERN_C Render_RendererHandle Render_RendererCreate() {
 	auto renderer = (Render_Renderer*) MEMORY_CALLOC(1, sizeof(Render_Renderer));

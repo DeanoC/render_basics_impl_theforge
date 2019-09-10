@@ -28,6 +28,7 @@ set(Interface
 set(Src
 		view.cpp
 		api.cpp
+		framebuffer.cpp
 		)
 
 set(Deps

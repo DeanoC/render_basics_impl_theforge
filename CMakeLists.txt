@@ -23,14 +23,18 @@ set(LibName ${BaseInterfaceName}_impl_${ImplName})
 project(${LibName})
 
 set(Interface
+		api.h
 		)
 set(Src
 		view.cpp
+		api.cpp
 		)
 
 set(Deps
 		al2o3_platform
 		al2o3_os
 		render_basics_interface
+		gfx_theforge
+		gfx_shadercompiler
 		)
 ADD_LINK_TIME_IMPL(${BaseInterfaceName} ${ImplName} "${Interface}" "${Src}" "${Deps}")

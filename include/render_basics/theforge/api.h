@@ -6,9 +6,13 @@
 
 typedef struct Render_Renderer {
 	TheForge_RendererHandle renderer;
-	TheForge_CmdPoolHandle cmdPool;
 
 	TheForge_QueueHandle graphicsQueue;
+	TheForge_CmdPoolHandle graphicsCmdPool;
+	TheForge_QueueHandle computeQueue;
+	TheForge_CmdPoolHandle computeCmdPool;
+	TheForge_QueueHandle blitQueue;
+	TheForge_CmdPoolHandle blitCmdPool;
 
 	ShaderCompiler_ContextHandle shaderCompiler;
 

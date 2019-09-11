@@ -7,7 +7,8 @@
 #include "render_basics/api.h"
 
 typedef struct Render_FrameBuffer {
-	Render_RendererHandle renderer;
+	Render_Renderer* renderer;
+	TheForge_CmdPoolHandle commandPool;
 	TheForge_QueueHandle presentQueue;
 	uint32_t frameBufferCount;
 
@@ -26,16 +27,19 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 		Render_FrameBufferDesc const* desc) {
 	ASSERT(desc->frameBufferWidth);
 	ASSERT(desc->frameBufferHeight);
+	ASSERT(desc->queue);
+	ASSERT(desc->commandPool);
 
 	auto rrenderer = (Render_Renderer*)handle;
 	auto tfrenderer = (TheForge_RendererHandle) rrenderer->renderer;
-	auto commandPool = (TheForge_CmdPoolHandle) desc->commandPool;
 
 	auto fb = (Render_FrameBuffer *) MEMORY_CALLOC(1, sizeof(Render_FrameBuffer));
 
 	fb->renderer = handle;
+	fb->commandPool = (TheForge_CmdPoolHandle) desc->commandPool;
 	fb->presentQueue = (TheForge_QueueHandle)desc->queue;
 	fb->frameBufferCount = desc->frameBufferCount;
+
 	fb->renderCompleteFences = (TheForge_FenceHandle *) MEMORY_CALLOC(fb->frameBufferCount, sizeof(TheForge_FenceHandle));
 	fb->renderCompleteSemaphores =
 			(TheForge_SemaphoreHandle *) MEMORY_CALLOC(fb->frameBufferCount, sizeof(TheForge_SemaphoreHandle));
@@ -46,7 +50,7 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 	}
 	TheForge_AddSemaphore(tfrenderer, &fb->imageAcquiredSemaphore);
 
-	TheForge_AddCmd_n(commandPool, false, fb->frameBufferCount, &fb->frameCmds);
+	TheForge_AddCmd_n((TheForge_CmdPoolHandle) desc->commandPool, false, fb->frameBufferCount, &fb->frameCmds);
 
 	TheForge_WindowsDesc windowDesc;
 	memset(&windowDesc, 0, sizeof(TheForge_WindowsDesc));
@@ -89,26 +93,27 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 	return fb;
 }
 
-/*
-void Display_Destroy(Display_ContextHandle handle) {
-	if (!handle)
+
+AL2O3_EXTERN_C void Render_FrameBufferDestroy(Render_FrameBufferHandle ctx) {
+	if (!ctx)
 		return;
-	Display_Context *ctx = (Display_Context *) handle;
+
+	auto renderer = (TheForge_RendererHandle) ctx->renderer->renderer;
 
 	if (ctx->swapChain) {
-		TheForge_RemoveSwapChain(ctx->renderer, ctx->swapChain);
+		TheForge_RemoveSwapChain(renderer, ctx->swapChain);
 	}
 	if (ctx->depthBuffer) {
-		TheForge_RemoveRenderTarget(ctx->renderer, ctx->depthBuffer);
+		TheForge_RemoveRenderTarget(renderer, ctx->depthBuffer);
 	}
 
-	TheForge_RemoveCmd_n(ctx->cmdPool, ctx->swapImageCount, ctx->frameCmds);
+	TheForge_RemoveCmd_n(ctx->commandPool, ctx->frameBufferCount, ctx->frameCmds);
 
-	TheForge_RemoveSemaphore(ctx->renderer, ctx->imageAcquiredSemaphore);
+	TheForge_RemoveSemaphore(renderer, ctx->imageAcquiredSemaphore);
 
-	for (uint32_t i = 0; i < ctx->swapImageCount; ++i) {
-		TheForge_RemoveFence(ctx->renderer, ctx->renderCompleteFences[i]);
-		TheForge_RemoveSemaphore(ctx->renderer, ctx->renderCompleteSemaphores[i]);
+	for (uint32_t i = 0; i < ctx->frameBufferCount; ++i) {
+		TheForge_RemoveFence(renderer, ctx->renderCompleteFences[i]);
+		TheForge_RemoveSemaphore(renderer, ctx->renderCompleteSemaphores[i]);
 	}
 
 	MEMORY_FREE(ctx->renderCompleteFences);
@@ -117,43 +122,52 @@ void Display_Destroy(Display_ContextHandle handle) {
 
 }
 
-TheForge_CmdHandle Display_NewFrame(Display_ContextHandle handle,
-																		TheForge_RenderTargetHandle *renderTarget,
-																		TheForge_RenderTargetHandle *depthTarget) {
-	Display_Context *ctx = (Display_Context *) handle;
+AL2O3_EXTERN_C Render_CmdHandle Render_FrameBufferNewFrame(Render_FrameBufferHandle ctx,
+																						Render_RenderTargetHandle *renderTarget,
+																						Render_RenderTargetHandle *depthTarget) {
+
+	auto renderer = (TheForge_RendererHandle)ctx->renderer->renderer;
 	ASSERT(renderTarget != nullptr);
 	ASSERT(depthTarget != nullptr);
 
-	TheForge_AcquireNextImage(ctx->renderer, ctx->swapChain, ctx->imageAcquiredSemaphore, nullptr, &ctx->frameIndex);
+	TheForge_AcquireNextImage(renderer, ctx->swapChain, ctx->imageAcquiredSemaphore, nullptr, &ctx->frameIndex);
 
-	*renderTarget = TheForge_SwapChainGetRenderTarget(ctx->swapChain, ctx->frameIndex);
-	*depthTarget = ctx->depthBuffer;
+	TheForge_RenderTargetHandle rt = TheForge_SwapChainGetRenderTarget(ctx->swapChain, ctx->frameIndex);
+	*renderTarget = (Render_RenderTargetHandle)rt;
+	*depthTarget = (Render_RenderTargetHandle)ctx->depthBuffer;
 
 	TheForge_SemaphoreHandle renderCompleteSemaphore = ctx->renderCompleteSemaphores[ctx->frameIndex];
 	TheForge_FenceHandle renderCompleteFence = ctx->renderCompleteFences[ctx->frameIndex];
 
 	// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 	TheForge_FenceStatus fenceStatus;
-	TheForge_GetFenceStatus(ctx->renderer, renderCompleteFence, &fenceStatus);
+	TheForge_GetFenceStatus(renderer, renderCompleteFence, &fenceStatus);
 	if (fenceStatus == TheForge_FS_INCOMPLETE)
-		TheForge_WaitForFences(ctx->renderer, 1, &renderCompleteFence);
+		TheForge_WaitForFences(renderer, 1, &renderCompleteFence);
 
 	TheForge_CmdHandle cmd = ctx->frameCmds[ctx->frameIndex];
 	TheForge_BeginCmd(cmd);
 
 	// insert write barrier for render target if we are more the N frames ahead
-	TheForge_TextureBarrier barriers[] = {
-			{TheForge_RenderTargetGetTexture(*renderTarget), TheForge_RS_RENDER_TARGET},
-			{TheForge_RenderTargetGetTexture(ctx->depthBuffer), TheForge_RS_DEPTH_WRITE},
-	};
-	TheForge_CmdResourceBarrier(cmd, 0, nullptr, 2, barriers, false);
+	if(ctx->depthBuffer) {
+		TheForge_TextureBarrier barriers[] = {
+				{TheForge_RenderTargetGetTexture(rt), TheForge_RS_RENDER_TARGET},
+				{TheForge_RenderTargetGetTexture(ctx->depthBuffer), TheForge_RS_DEPTH_WRITE},
+		};
+		TheForge_CmdResourceBarrier(cmd, 0, nullptr, 2, barriers, false);
+	} else {
+		TheForge_TextureBarrier barriers[] = {
+				{TheForge_RenderTargetGetTexture(rt), TheForge_RS_RENDER_TARGET},
+		};
+		TheForge_CmdResourceBarrier(cmd, 0, nullptr, 1, barriers, false);
+	}
 
-	return cmd;
+	return (Render_CmdHandle)cmd;
 }
 
-void Display_Present(Display_ContextHandle handle) {
-	Display_Context *ctx = (Display_Context *) handle;
+AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 	if(!ctx) return;
+	auto renderer = (TheForge_RendererHandle)ctx->renderer->renderer;
 
 	TheForge_CmdHandle cmd = ctx->frameCmds[ctx->frameIndex];
 
@@ -196,20 +210,20 @@ void Display_Present(Display_ContextHandle handle) {
 
 }
 
-TinyImageFormat Display_GetBackBufferFormat(Display_ContextHandle handle) {
-	Display_Context *ctx = (Display_Context *) handle;
+AL2O3_EXTERN_C TinyImageFormat Render_FrameBufferColourFormat(Render_FrameBufferHandle ctx) {
 	if(!ctx) return TinyImageFormat_UNDEFINED;
 
 	TheForge_RenderTargetHandle renderTarget = TheForge_SwapChainGetRenderTarget(ctx->swapChain, ctx->frameIndex);
 	TheForge_RenderTargetDesc const* desc = TheForge_RenderTargetGetDesc(renderTarget);
+	ASSERT(desc);
 	return desc->format;
 }
 
-TinyImageFormat Display_GetDepthBufferFormat(Display_ContextHandle handle) {
-	Display_Context *ctx = (Display_Context *) handle;
+AL2O3_EXTERN_C TinyImageFormat Render_FrameBufferDepthFormat(Render_FrameBufferHandle ctx) {
 	if(!ctx) return TinyImageFormat_UNDEFINED;
+	if(!ctx->depthBuffer) return TinyImageFormat_UNDEFINED;
 
 	TheForge_RenderTargetDesc const* desc = TheForge_RenderTargetGetDesc(ctx->depthBuffer);
+	ASSERT(desc);
 	return desc->format;
 }
-*/

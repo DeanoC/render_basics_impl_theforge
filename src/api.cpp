@@ -35,12 +35,16 @@ AL2O3_EXTERN_C Render_RendererHandle Render_RendererCreate() {
 		ShaderCompiler_SetOutput(renderer->shaderCompiler, ShaderCompiler_OT_SPIRV, 13);
 	}
 
-	// create basic graphics queues fences etc.
 	TheForge_QueueDesc queueDesc{};
 	queueDesc.type = TheForge_CP_DIRECT;
 	TheForge_AddQueue(renderer->renderer, &queueDesc, &renderer->graphicsQueue);
-	TheForge_AddCmdPool(renderer->renderer, renderer->graphicsQueue, false, &renderer->cmdPool);
-
+	TheForge_AddCmdPool(renderer->renderer, renderer->graphicsQueue, false, &renderer->graphicsCmdPool);
+	queueDesc.type = TheForge_CP_COMPUTE;
+	TheForge_AddQueue(renderer->renderer, &queueDesc, &renderer->computeQueue);
+	TheForge_AddCmdPool(renderer->renderer, renderer->computeQueue, false, &renderer->computeCmdPool);
+	queueDesc.type = TheForge_CP_COPY;
+	TheForge_AddQueue(renderer->renderer, &queueDesc, &renderer->blitQueue);
+	TheForge_AddCmdPool(renderer->renderer, renderer->blitQueue, false, &renderer->blitCmdPool);
 
 	// init TheForge resourceloader
 	TheForge_InitResourceLoaderInterface(renderer->renderer, nullptr);
@@ -51,7 +55,11 @@ AL2O3_EXTERN_C Render_RendererHandle Render_RendererCreate() {
 AL2O3_EXTERN_C void Render_RendererDestroy(Render_RendererHandle renderer) {
 	if(!renderer) return;
 
-	TheForge_RemoveCmdPool(renderer->renderer, renderer->cmdPool);
+	TheForge_RemoveCmdPool(renderer->renderer, renderer->blitCmdPool);
+	TheForge_RemoveQueue(renderer->blitQueue);
+	TheForge_RemoveCmdPool(renderer->renderer, renderer->computeCmdPool);
+	TheForge_RemoveQueue(renderer->computeQueue);
+	TheForge_RemoveCmdPool(renderer->renderer, renderer->graphicsCmdPool);
 	TheForge_RemoveQueue(renderer->graphicsQueue);
 
 	ShaderCompiler_Destroy(renderer->shaderCompiler);
@@ -60,10 +68,30 @@ AL2O3_EXTERN_C void Render_RendererDestroy(Render_RendererHandle renderer) {
 	MEMORY_FREE(renderer);
 }
 
-AL2O3_EXTERN_C char const * const Render_RendererGetBackendName(Render_RendererHandle handle) {
+AL2O3_EXTERN_C char const * const Render_RendererGetBackendName(Render_RendererHandle) {
 	return "TheForge";
 }
 
-AL2O3_EXTERN_C char const * const Render_RendererGetGPUName(Render_RendererHandle handle) {
+AL2O3_EXTERN_C char const * const Render_RendererGetGPUName(Render_RendererHandle) {
 	return "UNKNOWN"; // TODO
+}
+
+AL2O3_EXTERN_C Render_QueueHandle Render_RendererGetPrimaryQueue(Render_RendererHandle ctx, Render_GraphicsQueueType queueType) {
+	if(!ctx) return nullptr;
+	switch(queueType) {
+	case RENDER_GQT_GRAPHICS: return (Render_QueueHandle)ctx->graphicsQueue;
+	case RENDER_GQT_COMPUTE: return (Render_QueueHandle)ctx->computeQueue;
+	case RENDER_GQT_BLITTER: return (Render_QueueHandle)ctx->blitQueue;
+	default: return nullptr;
+	}
+}
+
+AL2O3_EXTERN_C Render_CmdPoolHandle Render_RendererGetPrimaryCommandPool(Render_RendererHandle ctx, Render_GraphicsQueueType queueType) {
+	if(!ctx) return nullptr;
+	switch(queueType) {
+	case RENDER_GQT_GRAPHICS: return (Render_CmdPoolHandle)ctx->graphicsCmdPool;
+	case RENDER_GQT_COMPUTE: return (Render_CmdPoolHandle)ctx->computeCmdPool;
+	case RENDER_GQT_BLITTER: return (Render_CmdPoolHandle)ctx->blitCmdPool;
+	default: return nullptr;
+	}
 }

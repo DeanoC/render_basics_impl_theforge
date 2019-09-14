@@ -1,5 +1,10 @@
 #include "al2o3_platform/platform.h"
 #include "al2o3_memory/memory.h"
+#include "tiny_imageformat/tinyimageformat_query.h"
+#include "tiny_imageformat/tinyimageformat_bits.h"
+
+#define Render_Cmd TheForge_Cmd
+#define Render_RenderTarget TheForge_RenderTarget
 #include "render_basics/api.h"
 #include "render_basics/theforge/api.h"
 
@@ -94,4 +99,54 @@ AL2O3_EXTERN_C Render_CmdPoolHandle Render_RendererGetPrimaryCommandPool(Render_
 	case RENDER_GQT_BLITTER: return (Render_CmdPoolHandle)ctx->blitCmdPool;
 	default: return nullptr;
 	}
+}
+
+AL2O3_EXTERN_C void Render_CmdBindRenderTargets(Render_CmdHandle cmd, uint32_t count, Render_RenderTargetHandle* targets, bool clear, bool setViewports, bool setScissors) {
+	if(!cmd || count == 0) return;
+
+	TheForge_LoadActionsDesc loadActions{};
+	TheForge_RenderTargetHandle colourTargets[16];
+	TheForge_RenderTargetHandle depthTarget = nullptr;
+	uint32_t colourTargetCount = 0;
+
+	uint32_t width = 0;
+	uint32_t height = 0;
+
+	for(uint32_t i = 0; i < count; ++i) {
+		TheForge_RenderTargetHandle rth = targets[i];
+		TheForge_RenderTargetDesc const *renderTargetDesc = TheForge_RenderTargetGetDesc(rth);
+		if(i == 0) {
+			width = renderTargetDesc->width;
+			height = renderTargetDesc->height;
+		}
+
+		uint64_t formatCode = TinyImageFormat_Code(renderTargetDesc->format);
+		if((formatCode & TinyImageFormat_NAMESPACE_MASK) != TinyImageFormat_NAMESPACE_DEPTH_STENCIL) {
+			colourTargets[colourTargetCount++] = rth;
+			loadActions.loadActionsColor[i] = TheForge_LA_CLEAR;
+			loadActions.clearColorValues[i] = renderTargetDesc->clearValue;
+		} else {
+			ASSERT(depthTarget == nullptr);
+			depthTarget = rth;
+			loadActions.loadActionDepth = TheForge_LA_CLEAR;
+			loadActions.clearDepth = renderTargetDesc->clearValue;
+		}
+	}
+
+	TheForge_CmdBindRenderTargets(cmd,
+																colourTargetCount,
+																colourTargets,
+																depthTarget,
+																&loadActions,
+																nullptr, nullptr,
+																-1, -1);
+	if(setViewports) {
+		TheForge_CmdSetViewport(cmd, 0.0f, 0.0f,
+														(float) width, (float) height,
+														0.0f, 1.0f);
+	}
+	if(setScissors) {
+		TheForge_CmdSetScissor(cmd, 0, 0, width, height);
+	}
+
 }

@@ -1,10 +1,12 @@
-#include <render_basics/api.h>
-#include <render_basics/theforge/api.h>
 #include "al2o3_platform/platform.h"
 #include "al2o3_memory/memory.h"
 #include "gfx_theforge/theforge.h"
 #include "tiny_imageformat/tinyimageformat_query.h"
+
+#define Render_Cmd TheForge_Cmd
+#define Render_RenderTarget TheForge_RenderTarget
 #include "render_basics/api.h"
+#include "render_basics/theforge/api.h"
 
 typedef struct Render_FrameBuffer {
 	Render_Renderer* renderer;
@@ -133,8 +135,8 @@ AL2O3_EXTERN_C Render_CmdHandle Render_FrameBufferNewFrame(Render_FrameBufferHan
 	TheForge_AcquireNextImage(renderer, ctx->swapChain, ctx->imageAcquiredSemaphore, nullptr, &ctx->frameIndex);
 
 	TheForge_RenderTargetHandle rt = TheForge_SwapChainGetRenderTarget(ctx->swapChain, ctx->frameIndex);
-	*renderTarget = (Render_RenderTargetHandle)rt;
-	*depthTarget = (Render_RenderTargetHandle)ctx->depthBuffer;
+	*renderTarget = rt;
+	*depthTarget = ctx->depthBuffer;
 
 	TheForge_SemaphoreHandle renderCompleteSemaphore = ctx->renderCompleteSemaphores[ctx->frameIndex];
 	TheForge_FenceHandle renderCompleteFence = ctx->renderCompleteFences[ctx->frameIndex];
@@ -162,7 +164,7 @@ AL2O3_EXTERN_C Render_CmdHandle Render_FrameBufferNewFrame(Render_FrameBufferHan
 		TheForge_CmdResourceBarrier(cmd, 0, nullptr, 1, barriers, false);
 	}
 
-	return (Render_CmdHandle)cmd;
+	return cmd;
 }
 
 AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {

@@ -24,12 +24,12 @@ AL2O3_EXTERN_C Render_RendererHandle Render_RendererCreate() {
 	if (!renderer->renderer) {
 		LOGERROR("TheForge_RendererCreate failed");
 
-		return false;
+		return nullptr;
 	}
 	renderer->shaderCompiler = ShaderCompiler_Create();
 	if (!renderer->shaderCompiler) {
 		LOGERROR("ShaderCompiler_Create failed");
-		return false;
+		return nullptr;
 	}
 #ifndef NDEBUG
 	ShaderCompiler_SetOptimizationLevel(renderer->shaderCompiler, ShaderCompiler_OPT_None);

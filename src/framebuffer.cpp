@@ -3,10 +3,9 @@
 #include "gfx_theforge/theforge.h"
 #include "tiny_imageformat/tinyimageformat_query.h"
 
-#define Render_Cmd TheForge_Cmd
-#define Render_RenderTarget TheForge_RenderTarget
-#include "render_basics/api.h"
 #include "render_basics/theforge/api.h"
+#include "render_basics/api.h"
+#include "render_basics/framebuffer.h"
 
 typedef struct Render_FrameBuffer {
 	Render_Renderer* renderer;
@@ -96,11 +95,13 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 }
 
 
-AL2O3_EXTERN_C void Render_FrameBufferDestroy(Render_FrameBufferHandle ctx) {
+AL2O3_EXTERN_C void Render_FrameBufferDestroy(Render_RendererHandle handle, Render_FrameBufferHandle ctx) {
 	if (!ctx)
 		return;
 
-	auto renderer = (TheForge_RendererHandle) ctx->renderer->renderer;
+	ASSERT(handle == ctx->renderer);
+
+	auto renderer = handle->renderer;
 
 	if (ctx->swapChain) {
 		TheForge_RemoveSwapChain(renderer, ctx->swapChain);

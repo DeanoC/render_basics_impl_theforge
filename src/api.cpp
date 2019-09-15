@@ -3,10 +3,8 @@
 #include "tiny_imageformat/tinyimageformat_query.h"
 #include "tiny_imageformat/tinyimageformat_bits.h"
 
-#define Render_Cmd TheForge_Cmd
-#define Render_RenderTarget TheForge_RenderTarget
-#include "render_basics/api.h"
 #include "render_basics/theforge/api.h"
+#include "render_basics/api.h"
 
 
 AL2O3_EXTERN_C Render_RendererHandle Render_RendererCreate() {
@@ -60,6 +58,12 @@ AL2O3_EXTERN_C Render_RendererHandle Render_RendererCreate() {
 AL2O3_EXTERN_C void Render_RendererDestroy(Render_RendererHandle renderer) {
 	if(!renderer) return;
 
+	for (size_t i = 0; i < Render_SST_COUNT; ++i) {
+		if (renderer->stockSamplers[i] != nullptr) {
+			TheForge_RemoveSampler(renderer->renderer, renderer->stockSamplers[i]);
+		}
+	}
+
 	TheForge_RemoveCmdPool(renderer->renderer, renderer->blitCmdPool);
 	TheForge_RemoveQueue(renderer->blitQueue);
 	TheForge_RemoveCmdPool(renderer->renderer, renderer->computeCmdPool);
@@ -73,20 +77,20 @@ AL2O3_EXTERN_C void Render_RendererDestroy(Render_RendererHandle renderer) {
 	MEMORY_FREE(renderer);
 }
 
-AL2O3_EXTERN_C char const * const Render_RendererGetBackendName(Render_RendererHandle) {
+AL2O3_EXTERN_C char const *Render_RendererGetBackendName(Render_RendererHandle) {
 	return "TheForge";
 }
 
-AL2O3_EXTERN_C char const * const Render_RendererGetGPUName(Render_RendererHandle) {
+AL2O3_EXTERN_C char const *Render_RendererGetGPUName(Render_RendererHandle) {
 	return "UNKNOWN"; // TODO
 }
 
 AL2O3_EXTERN_C Render_QueueHandle Render_RendererGetPrimaryQueue(Render_RendererHandle ctx, Render_GraphicsQueueType queueType) {
 	if(!ctx) return nullptr;
 	switch(queueType) {
-	case RENDER_GQT_GRAPHICS: return (Render_QueueHandle)ctx->graphicsQueue;
-	case RENDER_GQT_COMPUTE: return (Render_QueueHandle)ctx->computeQueue;
-	case RENDER_GQT_BLITTER: return (Render_QueueHandle)ctx->blitQueue;
+		case Render_GQT_GRAPHICS: return ctx->graphicsQueue;
+		case Render_GQT_COMPUTE: return ctx->computeQueue;
+		case Render_GQT_BLITTER: return ctx->blitQueue;
 	default: return nullptr;
 	}
 }
@@ -94,9 +98,9 @@ AL2O3_EXTERN_C Render_QueueHandle Render_RendererGetPrimaryQueue(Render_Renderer
 AL2O3_EXTERN_C Render_CmdPoolHandle Render_RendererGetPrimaryCommandPool(Render_RendererHandle ctx, Render_GraphicsQueueType queueType) {
 	if(!ctx) return nullptr;
 	switch(queueType) {
-	case RENDER_GQT_GRAPHICS: return (Render_CmdPoolHandle)ctx->graphicsCmdPool;
-	case RENDER_GQT_COMPUTE: return (Render_CmdPoolHandle)ctx->computeCmdPool;
-	case RENDER_GQT_BLITTER: return (Render_CmdPoolHandle)ctx->blitCmdPool;
+		case Render_GQT_GRAPHICS: return ctx->graphicsCmdPool;
+		case Render_GQT_COMPUTE: return ctx->computeCmdPool;
+		case Render_GQT_BLITTER: return ctx->blitCmdPool;
 	default: return nullptr;
 	}
 }

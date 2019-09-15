@@ -26,9 +26,10 @@ set(Interface
 		api.h
 		)
 set(Src
-		view.cpp
 		api.cpp
 		framebuffer.cpp
+		stock.cpp
+		view.cpp
 		)
 
 set(Deps

@@ -21,6 +21,8 @@
 typedef struct Render_Renderer {
 	TheForge_RendererHandle renderer;
 
+	InputBasic_ContextHandle input; ///< can be null
+
 	TheForge_QueueHandle graphicsQueue;
 	TheForge_CmdPoolHandle graphicsCmdPool;
 	TheForge_QueueHandle computeQueue;

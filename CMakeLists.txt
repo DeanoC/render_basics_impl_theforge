@@ -38,5 +38,6 @@ set(Deps
 		render_basics_interface
 		gfx_theforge
 		gfx_shadercompiler
+		gfx_imgui_al2o3_theforge_bindings
 		)
 ADD_LINK_TIME_IMPL(${BaseInterfaceName} ${ImplName} "${Interface}" "${Src}" "${Deps}")

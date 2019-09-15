@@ -7,10 +7,11 @@
 #include "render_basics/api.h"
 
 
-AL2O3_EXTERN_C Render_RendererHandle Render_RendererCreate() {
+AL2O3_EXTERN_C Render_RendererHandle Render_RendererCreate(InputBasic_ContextHandle input) {
 	auto renderer = (Render_Renderer*) MEMORY_CALLOC(1, sizeof(Render_Renderer));
 	if(!renderer) return nullptr;
 
+	renderer->input = input;
 	// window and renderer setup
 	TheForge_RendererDesc desc{
 			TheForge_ST_6_0,

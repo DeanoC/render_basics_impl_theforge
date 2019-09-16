@@ -27,13 +27,17 @@ set(Interface
 		)
 set(Src
 		api.cpp
+		buffer.cpp
 		framebuffer.cpp
 		stock.cpp
 		view.cpp
+		visualdebug.cpp
+		visdebug.hpp
 		)
 
 set(Deps
 		al2o3_platform
+		al2o3_cadt
 		al2o3_os
 		render_basics_interface
 		gfx_theforge

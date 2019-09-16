@@ -8,25 +8,8 @@
 #include "render_basics/api.h"
 #include "render_basics/framebuffer.h"
 #include "render_basics/cmd.h"
+#include "visdebug.hpp"
 
-typedef struct Render_FrameBuffer {
-	Render_Renderer *renderer;
-	TheForge_CmdPoolHandle commandPool;
-	TheForge_QueueHandle presentQueue;
-	uint32_t frameBufferCount;
-
-	TheForge_SwapChainHandle swapChain;
-	TheForge_RenderTargetHandle depthBuffer;
-	TheForge_FenceHandle *renderCompleteFences;
-	TheForge_SemaphoreHandle imageAcquiredSemaphore;
-	TheForge_SemaphoreHandle *renderCompleteSemaphores;
-	TheForge_CmdHandle *frameCmds;
-
-	ImguiBindings_ContextHandle imguiBindings;
-
-	uint32_t frameIndex;
-
-} Render_FrameBuffer;
 
 AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 		Render_RendererHandle renderer,
@@ -95,6 +78,11 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 		depthRTDesc.flags = TheForge_TCF_NONE;
 		TheForge_AddRenderTarget(tfrenderer, &depthRTDesc, &fb->depthBuffer);
 	}
+
+	if (desc->visualDebugTarget) {
+		fb->visualDebug = RenderTF_VisualDebugCreate(fb);
+	}
+
 	if(desc->embeddedImgui) {
 		ImguiBindings_Shared shared = {
 				Render_GetStockSampler(renderer, Render_SST_LINEAR),
@@ -132,6 +120,10 @@ AL2O3_EXTERN_C void Render_FrameBufferDestroy(Render_RendererHandle handle, Rend
 	ASSERT(handle == ctx->renderer);
 
 	auto renderer = handle->renderer;
+
+	if (ctx->visualDebug) {
+		RenderTF_VisualDebugDestroy(ctx->visualDebug);
+	}
 
 	if (ctx->imguiBindings) {
 		ImguiBindings_Destroy(ctx->imguiBindings);
@@ -224,11 +216,16 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 
 	TheForge_RenderTargetHandle renderTarget = TheForge_SwapChainGetRenderTarget(ctx->swapChain, ctx->frameIndex);
 
-	if (ctx->imguiBindings) {
-
+	if (ctx->visualDebug || ctx->imguiBindings) {
 		Render_RenderTargetHandle renderTargets[2] = {renderTarget, ctx->depthBuffer};
-
 		Render_CmdBindRenderTargets(cmd, renderTargets[1] ? 2 : 1, renderTargets, true, true, true);
+	}
+
+	if (ctx->visualDebug) {
+		RenderTF_VisualDebugRender(ctx->visualDebug);
+	}
+
+	if (ctx->imguiBindings) {
 		ImguiBindings_Render(ctx->imguiBindings, cmd);
 	}
 

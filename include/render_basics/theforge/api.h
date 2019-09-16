@@ -6,6 +6,7 @@
 #include "gfx_theforge/theforge.h"
 #include "gfx_shadercompiler/compiler.h"
 
+#define Render_Buffer TheForge_Buffer
 #define Render_BlendState TheForge_BlendState
 #define Render_CmdPool TheForge_CmdPool
 #define Render_Cmd TheForge_Cmd
@@ -17,6 +18,7 @@
 #define Render_VertexLayout TheForge_VertexLayout const
 
 #include "render_basics/api.h"
+#include "render_basics/view.h"
 
 typedef struct Render_Renderer {
 	TheForge_RendererHandle renderer;
@@ -40,3 +42,42 @@ typedef struct Render_Renderer {
 
 } Render_Renderer;
 
+typedef struct Render_FrameBuffer {
+	Render_Renderer *renderer;
+	TheForge_CmdPoolHandle commandPool;
+	TheForge_QueueHandle presentQueue;
+	uint32_t frameBufferCount;
+
+	TheForge_SwapChainHandle swapChain;
+	TheForge_RenderTargetHandle depthBuffer;
+	TheForge_FenceHandle *renderCompleteFences;
+	TheForge_SemaphoreHandle imageAcquiredSemaphore;
+	TheForge_SemaphoreHandle *renderCompleteSemaphores;
+	TheForge_CmdHandle *frameCmds;
+
+	struct ImguiBindings_Context *imguiBindings;
+
+	struct RenderTF_VisualDebug *visualDebug;
+
+	uint32_t frameIndex;
+
+} Render_FrameBuffer;
+
+typedef struct Render_GraphicsEncoder {
+
+	Render_CmdHandle cmd;
+	Render_View view;
+
+} Render_GraphicsEncoder;
+
+typedef struct Render_ComputeEncoder {
+
+	Render_CmdHandle cmd;
+
+} Render_ComputeEncoder;
+
+typedef struct Render_BlitEncoder {
+
+	Render_CmdHandle cmd;
+
+} Render_BlitEncoder;

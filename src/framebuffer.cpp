@@ -96,9 +96,17 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 		TheForge_AddRenderTarget(tfrenderer, &depthRTDesc, &fb->depthBuffer);
 	}
 	if(desc->embeddedImgui) {
+		ImguiBindings_Shared shared = {
+				Render_GetStockSampler(renderer, Render_SST_LINEAR),
+				Render_GetStockBlendState(renderer, Render_SBT_PORTER_DUFF),
+				Render_GetStockDepthState(renderer, Render_SDS_IGNORE),
+				Render_GetStockRasterisationState(renderer, Render_SRS_NOCULL),
+				Render_GetStockVertexLayout(renderer, Render_SVL_2D_COLOUR_UV)
+		};
 		fb->imguiBindings = ImguiBindings_Create(tfrenderer,
 																						 renderer->shaderCompiler,
 																						 renderer->input,
+																						 &shared,
 																						 20,
 																						 fb->frameBufferCount,
 																						 swapChainDesc.colorFormat,

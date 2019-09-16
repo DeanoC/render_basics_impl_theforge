@@ -15,7 +15,7 @@ AL2O3_EXTERN_C Render_BlendStateHandle Render_GetStockBlendState(Render_Renderer
 	TheForge_BlendStateDesc const *blendDesc;
 	switch (stock) {
 
-		case Render_SBT_Opaque: {
+		case Render_SBT_OPAQUE: {
 			TheForge_BlendStateDesc const desc{
 					{TheForge_BC_ONE},
 					{TheForge_BC_ZERO},
@@ -31,7 +31,7 @@ AL2O3_EXTERN_C Render_BlendStateHandle Render_GetStockBlendState(Render_Renderer
 			break;
 		}
 
-		case Render_SBT_PorterDuff: {
+		case Render_SBT_PORTER_DUFF: {
 			TheForge_BlendStateDesc const desc{
 					{TheForge_BC_SRC_ALPHA},
 					{TheForge_BC_ONE_MINUS_SRC_ALPHA},
@@ -46,7 +46,7 @@ AL2O3_EXTERN_C Render_BlendStateHandle Render_GetStockBlendState(Render_Renderer
 			blendDesc = &desc;
 			break;
 		}
-		case Render_SBT_Additive: {
+		case Render_SBT_ADDITIVE: {
 			TheForge_BlendStateDesc const desc{
 					{TheForge_BC_ONE},
 					{TheForge_BC_ONE},
@@ -61,7 +61,7 @@ AL2O3_EXTERN_C Render_BlendStateHandle Render_GetStockBlendState(Render_Renderer
 			blendDesc = &desc;
 			break;
 		}
-		case Render_SBT_PorterDuffPM: {
+		case Render_SBT_PM_PORTER_DUFF: {
 			TheForge_BlendStateDesc const desc{
 					{TheForge_BC_ONE},
 					{TheForge_BC_ONE_MINUS_SRC_ALPHA},
@@ -151,8 +151,8 @@ AL2O3_EXTERN_C Render_DepthStateHandle Render_GetStockDepthState(Render_Renderer
 
 }
 
-AL2O3_EXTERN_C Render_RasteriserStateHandle Render_GetStockRasterState(Render_RendererHandle renderer,
-																																			 Render_StockRasterState stock) {
+AL2O3_EXTERN_C Render_RasteriserStateHandle Render_GetStockRasterisationState(Render_RendererHandle renderer,
+																																							Render_StockRasterState stock) {
 	if (renderer->stockRasterState[stock] != nullptr) {
 		return renderer->stockRasterState[stock];
 	}

@@ -114,7 +114,7 @@ void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd) {
 	}
 
 	TheForge_BufferUpdateDesc updateGPUVertices{};
-	updateGPUVertices.buffer = vd->gpuVertexData;
+	updateGPUVertices.buffer = vd->gpuVertexData->buffer;
 	updateGPUVertices.pData = CADT_VectorData(vd->vertexData);
 	updateGPUVertices.mSrcOffset = 0;
 	updateGPUVertices.mDstOffset = 0;
@@ -124,7 +124,7 @@ void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd) {
 	if (CADT_VectorSize(vd->lineIndexData) > 0) {
 
 		TheForge_BufferUpdateDesc updateGPULineIndices{};
-		updateGPULineIndices.buffer = vd->gpuLineIndexData;
+		updateGPULineIndices.buffer = vd->gpuLineIndexData->buffer;
 		updateGPULineIndices.pData = CADT_VectorData(vd->lineIndexData);
 		updateGPULineIndices.mSrcOffset = 0;
 		updateGPULineIndices.mDstOffset = 0;

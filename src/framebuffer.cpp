@@ -7,7 +7,7 @@
 #include "render_basics/theforge/api.h"
 #include "render_basics/api.h"
 #include "render_basics/framebuffer.h"
-#include "render_basics/cmd.h"
+#include "render_basics/graphicsencoder.h"
 #include "visdebug.hpp"
 
 
@@ -151,19 +151,11 @@ AL2O3_EXTERN_C void Render_FrameBufferDestroy(Render_RendererHandle handle, Rend
 
 }
 
-AL2O3_EXTERN_C Render_CmdHandle Render_FrameBufferNewFrame(Render_FrameBufferHandle ctx,
-																													 Render_RenderTargetHandle *renderTarget,
-																													 Render_RenderTargetHandle *depthTarget) {
+AL2O3_EXTERN_C void Render_FrameBufferNewFrame(Render_FrameBufferHandle ctx) {
 
 	auto renderer = (TheForge_RendererHandle) ctx->renderer->renderer;
-	ASSERT(renderTarget != nullptr);
-	ASSERT(depthTarget != nullptr);
 
 	TheForge_AcquireNextImage(renderer, ctx->swapChain, ctx->imageAcquiredSemaphore, nullptr, &ctx->frameIndex);
-
-	TheForge_RenderTargetHandle rt = TheForge_SwapChainGetRenderTarget(ctx->swapChain, ctx->frameIndex);
-	*renderTarget = rt;
-	*depthTarget = ctx->depthBuffer;
 
 	TheForge_SemaphoreHandle renderCompleteSemaphore = ctx->renderCompleteSemaphores[ctx->frameIndex];
 	TheForge_FenceHandle renderCompleteFence = ctx->renderCompleteFences[ctx->frameIndex];
@@ -175,24 +167,27 @@ AL2O3_EXTERN_C Render_CmdHandle Render_FrameBufferNewFrame(Render_FrameBufferHan
 		TheForge_WaitForFences(renderer, 1, &renderCompleteFence);
 	}
 
-	TheForge_CmdHandle cmd = ctx->frameCmds[ctx->frameIndex];
-	TheForge_BeginCmd(cmd);
+	ctx->currentCmd = ctx->frameCmds[ctx->frameIndex];
+	ctx->currentColourTarget = TheForge_SwapChainGetRenderTarget(ctx->swapChain, ctx->frameIndex);
+	ctx->graphicsEncoder.cmd = ctx->currentCmd;
+	ctx->graphicsEncoder.view = Render_View{};
+
+	TheForge_BeginCmd(ctx->currentCmd);
 
 	// insert write barrier for render target if we are more the N frames ahead
 	if (ctx->depthBuffer) {
 		TheForge_TextureBarrier barriers[] = {
-				{TheForge_RenderTargetGetTexture(rt), TheForge_RS_RENDER_TARGET},
+				{TheForge_RenderTargetGetTexture(ctx->currentColourTarget), TheForge_RS_RENDER_TARGET},
 				{TheForge_RenderTargetGetTexture(ctx->depthBuffer), TheForge_RS_DEPTH_WRITE},
 		};
-		TheForge_CmdResourceBarrier(cmd, 0, nullptr, 2, barriers, false);
+		TheForge_CmdResourceBarrier(ctx->currentCmd, 0, nullptr, 2, barriers, false);
 	} else {
 		TheForge_TextureBarrier barriers[] = {
-				{TheForge_RenderTargetGetTexture(rt), TheForge_RS_RENDER_TARGET},
+				{TheForge_RenderTargetGetTexture(ctx->currentColourTarget), TheForge_RS_RENDER_TARGET},
 		};
-		TheForge_CmdResourceBarrier(cmd, 0, nullptr, 1, barriers, false);
+		TheForge_CmdResourceBarrier(ctx->currentCmd, 0, nullptr, 1, barriers, false);
 	}
 
-	return cmd;
 }
 
 AL2O3_EXTERN_C ImguiBindings_ContextHandle Render_FrameBufferCreateImguiBindings(
@@ -212,13 +207,16 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 	}
 	auto renderer = (TheForge_RendererHandle) ctx->renderer->renderer;
 
-	TheForge_CmdHandle cmd = ctx->frameCmds[ctx->frameIndex];
-
 	TheForge_RenderTargetHandle renderTarget = TheForge_SwapChainGetRenderTarget(ctx->swapChain, ctx->frameIndex);
 
 	if (ctx->visualDebug || ctx->imguiBindings) {
 		Render_RenderTargetHandle renderTargets[2] = {renderTarget, ctx->depthBuffer};
-		Render_CmdBindRenderTargets(cmd, renderTargets[1] ? 2 : 1, renderTargets, true, true, true);
+		Render_GraphicsEncoderBindRenderTargets(&ctx->graphicsEncoder,
+																						renderTargets[1] ? 2 : 1,
+																						renderTargets,
+																						true,
+																						true,
+																						true);
 	}
 
 	if (ctx->visualDebug) {
@@ -226,10 +224,10 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 	}
 
 	if (ctx->imguiBindings) {
-		ImguiBindings_Render(ctx->imguiBindings, cmd);
+		ImguiBindings_Render(ctx->imguiBindings, ctx->currentCmd);
 	}
 
-	TheForge_CmdBindRenderTargets(cmd,
+	TheForge_CmdBindRenderTargets(ctx->currentCmd,
 																0,
 																nullptr, nullptr,
 																nullptr,
@@ -241,17 +239,17 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 			{TheForge_RenderTargetGetTexture(renderTarget), TheForge_RS_PRESENT},
 	};
 
-	TheForge_CmdResourceBarrier(cmd,
+	TheForge_CmdResourceBarrier(ctx->currentCmd,
 															0,
 															nullptr,
 															1,
 															barriers,
 															true);
-	TheForge_EndCmd(cmd);
+	TheForge_EndCmd(ctx->currentCmd);
 
 	TheForge_QueueSubmit(ctx->presentQueue,
 											 1,
-											 &cmd,
+											 &ctx->currentCmd,
 											 ctx->renderCompleteFences[ctx->frameIndex],
 											 1,
 											 &ctx->imageAcquiredSemaphore,
@@ -265,6 +263,7 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 												&ctx->renderCompleteSemaphores[ctx->frameIndex]);
 
 }
+
 AL2O3_EXTERN_C void Render_FrameBufferUpdate(Render_FrameBufferHandle frameBuffer,
 		uint32_t width,
 		uint32_t height,
@@ -281,6 +280,17 @@ AL2O3_EXTERN_C void Render_FrameBufferUpdate(Render_FrameBufferHandle frameBuffe
 															backingScaleY);
 
 	ImguiBindings_UpdateInput(frameBuffer->imguiBindings, deltaMS);
+}
+AL2O3_EXTERN_C Render_RenderTargetHandle Render_FrameBufferColourTarget(Render_FrameBufferHandle frameBuffer) {
+	return frameBuffer->currentColourTarget;
+}
+
+AL2O3_EXTERN_C Render_RenderTargetHandle Render_FrameBufferDepthTarget(Render_FrameBufferHandle frameBuffer) {
+	return frameBuffer->depthBuffer;
+}
+
+AL2O3_EXTERN_C Render_GraphicsEncoderHandle Render_FrameBufferGraphicsEncoder(Render_FrameBufferHandle frameBuffer) {
+	return &frameBuffer->graphicsEncoder;
 }
 
 AL2O3_EXTERN_C TinyImageFormat Render_FrameBufferColourFormat(Render_FrameBufferHandle ctx) {

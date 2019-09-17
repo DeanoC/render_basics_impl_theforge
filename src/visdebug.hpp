@@ -11,9 +11,9 @@ struct RenderTF_VisualDebug {
 	CADT_VectorHandle lineIndexData;
 
 	uint32_t gpuVertexDataCount;
-	TheForge_BufferHandle gpuVertexData;
+	Render_BufferHandle gpuVertexData;
 	uint32_t gpuLineIndexDataCount;
-	TheForge_BufferHandle gpuLineIndexData;
+	Render_BufferHandle gpuLineIndexData;
 
 	AL2O3_VisualDebugging_t backup;
 };

@@ -6,7 +6,6 @@
 #include "gfx_theforge/theforge.h"
 #include "gfx_shadercompiler/compiler.h"
 
-#define Render_Buffer TheForge_Buffer
 #define Render_BlendState TheForge_BlendState
 #define Render_CmdPool TheForge_CmdPool
 #define Render_Cmd TheForge_Cmd
@@ -15,10 +14,42 @@
 #define Render_RasteriserState TheForge_RasterizerState
 #define Render_RenderTarget TheForge_RenderTarget
 #define Render_Sampler TheForge_Sampler
+#define Render_Texture TheForge_Texture
 #define Render_VertexLayout TheForge_VertexLayout const
 
 #include "render_basics/api.h"
 #include "render_basics/view.h"
+
+typedef struct Render_BlitEncoder {
+
+	Render_CmdPoolHandle cmdPool;
+
+	Render_CmdHandle currentCmd;
+} Render_BlitEncoder;
+
+typedef struct Render_Buffer {
+	TheForge_BufferHandle buffer;
+
+	uint32_t maxFrames;
+	uint32_t curFrame;
+
+} Render_Buffer;
+
+typedef struct Render_ComputeEncoder {
+
+	Render_CmdPoolHandle cmdPool;
+
+	Render_CmdHandle currentCmd;
+} Render_ComputeEncoder;
+
+typedef struct Render_GraphicsEncoder {
+
+	Render_CmdHandle cmd;
+	Render_View view;
+} Render_GraphicsEncoder;
+
+
+
 
 typedef struct Render_Renderer {
 	TheForge_RendererHandle renderer;
@@ -59,25 +90,10 @@ typedef struct Render_FrameBuffer {
 
 	struct RenderTF_VisualDebug *visualDebug;
 
+	// current (this frame) data
 	uint32_t frameIndex;
+	TheForge_RenderTargetHandle currentColourTarget;
+	TheForge_CmdHandle currentCmd;
+	Render_GraphicsEncoder graphicsEncoder;
 
 } Render_FrameBuffer;
-
-typedef struct Render_GraphicsEncoder {
-
-	Render_CmdHandle cmd;
-	Render_View view;
-
-} Render_GraphicsEncoder;
-
-typedef struct Render_ComputeEncoder {
-
-	Render_CmdHandle cmd;
-
-} Render_ComputeEncoder;
-
-typedef struct Render_BlitEncoder {
-
-	Render_CmdHandle cmd;
-
-} Render_BlitEncoder;

@@ -27,8 +27,11 @@ set(Interface
 		)
 set(Src
 		api.cpp
+		blitencoder.cpp
 		buffer.cpp
+		computeencoder.cpp
 		framebuffer.cpp
+		graphicsencoder.cpp
 		stock.cpp
 		view.cpp
 		visualdebug.cpp

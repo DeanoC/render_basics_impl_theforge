@@ -86,7 +86,7 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 	if(desc->embeddedImgui) {
 		ImguiBindings_Shared shared = {
 				Render_GetStockSampler(renderer, Render_SST_LINEAR),
-				Render_GetStockBlendState(renderer, Render_SBT_PORTER_DUFF),
+				Render_GetStockBlendState(renderer, Render_SBS_PORTER_DUFF),
 				Render_GetStockDepthState(renderer, Render_SDS_IGNORE),
 				Render_GetStockRasterisationState(renderer, Render_SRS_NOCULL),
 				Render_GetStockVertexLayout(renderer, Render_SVL_2D_COLOUR_UV)

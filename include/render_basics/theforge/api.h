@@ -65,7 +65,7 @@ typedef struct Render_Renderer {
 
 	ShaderCompiler_ContextHandle shaderCompiler;
 
-	TheForge_BlendStateHandle stockBlendState[Render_SSB_COUNT];
+	TheForge_BlendStateHandle stockBlendState[Render_SBS_COUNT];
 	TheForge_DepthStateHandle stockDepthState[Render_SDS_COUNT];
 	TheForge_RasterizerStateHandle stockRasterState[Render_SRS_COUNT];
 	TheForge_SamplerHandle stockSamplers[Render_SST_COUNT];

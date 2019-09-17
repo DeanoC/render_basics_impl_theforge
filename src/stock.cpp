@@ -6,7 +6,7 @@
 #include "render_basics/api.h"
 
 AL2O3_EXTERN_C Render_BlendStateHandle Render_GetStockBlendState(Render_RendererHandle renderer,
-																																 Render_StockBlendType stock) {
+																																 Render_StockBlendStateType stock) {
 
 	if (renderer->stockBlendState[stock] != nullptr) {
 		return renderer->stockBlendState[stock];
@@ -15,7 +15,7 @@ AL2O3_EXTERN_C Render_BlendStateHandle Render_GetStockBlendState(Render_Renderer
 	TheForge_BlendStateDesc const *blendDesc;
 	switch (stock) {
 
-		case Render_SBT_OPAQUE: {
+		case Render_SBS_OPAQUE: {
 			TheForge_BlendStateDesc const desc{
 					{TheForge_BC_ONE},
 					{TheForge_BC_ZERO},
@@ -31,7 +31,7 @@ AL2O3_EXTERN_C Render_BlendStateHandle Render_GetStockBlendState(Render_Renderer
 			break;
 		}
 
-		case Render_SBT_PORTER_DUFF: {
+		case Render_SBS_PORTER_DUFF: {
 			TheForge_BlendStateDesc const desc{
 					{TheForge_BC_SRC_ALPHA},
 					{TheForge_BC_ONE_MINUS_SRC_ALPHA},
@@ -46,7 +46,7 @@ AL2O3_EXTERN_C Render_BlendStateHandle Render_GetStockBlendState(Render_Renderer
 			blendDesc = &desc;
 			break;
 		}
-		case Render_SBT_ADDITIVE: {
+		case Render_SBS_ADDITIVE: {
 			TheForge_BlendStateDesc const desc{
 					{TheForge_BC_ONE},
 					{TheForge_BC_ONE},
@@ -61,7 +61,7 @@ AL2O3_EXTERN_C Render_BlendStateHandle Render_GetStockBlendState(Render_Renderer
 			blendDesc = &desc;
 			break;
 		}
-		case Render_SBT_PM_PORTER_DUFF: {
+		case Render_SBS_PM_PORTER_DUFF: {
 			TheForge_BlendStateDesc const desc{
 					{TheForge_BC_ONE},
 					{TheForge_BC_ONE_MINUS_SRC_ALPHA},

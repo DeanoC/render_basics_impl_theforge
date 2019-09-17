@@ -102,3 +102,16 @@ AL2O3_EXTERN_C void Render_BufferDestroy(Render_RendererHandle renderer, Render_
 	TheForge_RemoveBuffer(renderer->renderer, buffer->buffer);
 	MEMORY_FREE(buffer);
 }
+
+AL2O3_EXTERN_C void Render_BufferUpload(Render_BufferHandle buffer, Render_BufferUpdateDesc const *update) {
+	TheForge_BufferUpdateDesc const tfUpdate{
+			buffer->buffer,
+			update->data,
+			0,
+			update->dstOffset,
+			update->size
+	};
+
+	TheForge_UpdateBuffer(&tfUpdate, true);
+
+}

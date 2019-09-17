@@ -9,24 +9,24 @@
 namespace {
 struct Vertex {
 	Math_Vec3F_t pos;
-	Math_Vec4F_t colour;
+	uint32_t colour;
 };
 
 RenderTF_VisualDebug *currentTarget = nullptr;
 
-void Line(float p0[3], float p1[3], float colour[4]) {
+void Line(float p0x, float p0y, float p0z, float p1x, float p1y, float p1z, uint32_t colour) {
 	if (currentTarget == nullptr) {
 		LOGERROR("RenderTF_VisualDebug Line callback still hooked up after destruction!");
 		return;
 	}
 	Vertex v0 = {
-			{p0[0], p0[1], p0[2]},
-			{colour[0], colour[1], colour[2], colour[3]}
+			{p0x, p0y, p0z},
+			colour
 	};
 
 	Vertex v1 = {
-			{p1[0], p1[1], p1[2]},
-			{colour[0], colour[1], colour[2], colour[3]}
+			{p1x, p1y, p1z},
+			colour
 	};
 
 	uint32_t i0 = (uint32_t) CADT_VectorPushElement(currentTarget->vertexData, &v0);
@@ -95,18 +95,44 @@ void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd) {
 				sizeof(Vertex),
 				true
 		};
-		Render_BufferCreateVertex(vd->target->renderer, &vbDesc);
+		vd->gpuVertexData = Render_BufferCreateVertex(vd->target->renderer, &vbDesc);
+		vd->gpuVertexDataCount = vbDesc.vertexCount;
 	}
 
-	TheForge_BufferUpdateDesc loadDesc{};
-	loadDesc.buffer = vd->gpuVertexData;
-	loadDesc.pData = CADT_VectorData(vd->vertexData);
-	loadDesc.mSrcOffset = 0;
-	loadDesc.mDstOffset = 0;
-	loadDesc.mSize = CADT_VectorSize(vd->vertexData) * CADT_VectorElementSize(vd->vertexData);
+	if (CADT_VectorSize(vd->lineIndexData) > vd->gpuLineIndexDataCount) {
+		if (vd->gpuLineIndexData) {
+			Render_BufferDestroy(vd->target->renderer, vd->gpuLineIndexData);
+			vd->gpuLineIndexData = nullptr;
+		}
+		Render_BufferIndexDesc ibDesc{
+				(uint32_t) CADT_VectorSize(vd->lineIndexData),
+				sizeof(uint32_t),
+				true
+		};
+		vd->gpuLineIndexData = Render_BufferCreateIndex(vd->target->renderer, &ibDesc);
+		vd->gpuLineIndexDataCount = ibDesc.indexCount;
+	}
 
-	TheForge_UpdateBuffer(&loadDesc, false);
+	TheForge_BufferUpdateDesc updateGPUVertices{};
+	updateGPUVertices.buffer = vd->gpuVertexData;
+	updateGPUVertices.pData = CADT_VectorData(vd->vertexData);
+	updateGPUVertices.mSrcOffset = 0;
+	updateGPUVertices.mDstOffset = 0;
+	updateGPUVertices.mSize = CADT_VectorSize(vd->vertexData) * CADT_VectorElementSize(vd->vertexData);
+	TheForge_UpdateBuffer(&updateGPUVertices, false);
 
-	CADT_VectorResize(vd->lineIndexData, 0);
+	if (CADT_VectorSize(vd->lineIndexData) > 0) {
+
+		TheForge_BufferUpdateDesc updateGPULineIndices{};
+		updateGPULineIndices.buffer = vd->gpuLineIndexData;
+		updateGPULineIndices.pData = CADT_VectorData(vd->lineIndexData);
+		updateGPULineIndices.mSrcOffset = 0;
+		updateGPULineIndices.mDstOffset = 0;
+		updateGPULineIndices.mSize = CADT_VectorSize(vd->lineIndexData) * sizeof(uint32_t);
+
+		TheForge_UpdateBuffer(&updateGPULineIndices, false);
+		CADT_VectorResize(vd->lineIndexData, 0);
+	}
+
 	CADT_VectorResize(vd->vertexData, 0);
 }

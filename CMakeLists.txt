@@ -32,6 +32,7 @@ set(Src
 		computeencoder.cpp
 		framebuffer.cpp
 		graphicsencoder.cpp
+		shader.cpp
 		stock.cpp
 		view.cpp
 		visualdebug.cpp

@@ -15,9 +15,10 @@ AL2O3_EXTERN_C Render_BufferHandle Render_BufferCreateVertex(Render_RendererHand
 	}
 
 	buffer->maxFrames = (desc->frequentlyUpdated ? 3 : 1);
+	buffer->size = desc->vertexCount * desc->vertexSize;
 
 	TheForge_BufferDesc const vbDesc{
-			desc->vertexCount * desc->vertexSize * buffer->maxFrames,
+			buffer->size * buffer->maxFrames,
 			desc->frequentlyUpdated ? TheForge_RMU_CPU_TO_GPU : TheForge_RMU_GPU_ONLY,
 			TheForge_BCF_NONE,
 			TheForge_RS_UNDEFINED,
@@ -44,9 +45,10 @@ AL2O3_EXTERN_C Render_BufferHandle Render_BufferCreateIndex(Render_RendererHandl
 	}
 
 	buffer->maxFrames = (desc->frequentlyUpdated ? 3 : 1);
+	buffer->size = desc->indexCount * desc->indexSize;
 
 	TheForge_BufferDesc const ibDesc{
-			desc->indexCount * desc->indexSize * buffer->maxFrames,
+			buffer->size * buffer->maxFrames,
 			desc->frequentlyUpdated ? TheForge_RMU_CPU_TO_GPU : TheForge_RMU_GPU_ONLY,
 			TheForge_BCF_NONE,
 			TheForge_RS_UNDEFINED,
@@ -72,9 +74,10 @@ AL2O3_EXTERN_C Render_BufferHandle Render_BufferCreateUniform(Render_RendererHan
 	}
 
 	buffer->maxFrames = (desc->frequentlyUpdated ? 3 : 1);
+	buffer->size = desc->size;
 
 	TheForge_BufferDesc const ubDesc{
-			desc->size * buffer->maxFrames,
+			buffer->size * buffer->maxFrames,
 			desc->frequentlyUpdated ? TheForge_RMU_CPU_TO_GPU : TheForge_RMU_GPU_ONLY,
 			TheForge_BCF_NO_DESCRIPTOR_VIEW_CREATION,
 			TheForge_RS_UNDEFINED,
@@ -108,9 +111,11 @@ AL2O3_EXTERN_C void Render_BufferUpload(Render_BufferHandle buffer, Render_Buffe
 			buffer->buffer,
 			update->data,
 			0,
-			update->dstOffset,
+			(buffer->curFrame * buffer->size) + update->dstOffset,
 			update->size
 	};
+
+	buffer->curFrame = (buffer->curFrame + 1) % buffer->maxFrames;
 
 	TheForge_UpdateBuffer(&tfUpdate, false);
 

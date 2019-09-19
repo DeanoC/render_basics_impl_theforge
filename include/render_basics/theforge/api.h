@@ -10,8 +10,10 @@
 #define Render_CmdPool TheForge_CmdPool
 #define Render_Cmd TheForge_Cmd
 #define Render_DepthState TheForge_DepthState
+#define Render_DescriptorBinder TheForge_DescriptorBinder
 #define Render_Queue TheForge_Queue
 #define Render_RasteriserState TheForge_RasterizerState
+#define Render_RootSignature TheForge_RootSignature
 #define Render_RenderTarget TheForge_RenderTarget
 #define Render_Sampler TheForge_Sampler
 #define Render_Texture TheForge_Texture
@@ -21,10 +23,9 @@
 #include "render_basics/view.h"
 
 typedef struct Render_BlitEncoder {
-
 	Render_CmdPoolHandle cmdPool;
 
-	Render_CmdHandle currentCmd;
+	Render_CmdHandle cmd;
 } Render_BlitEncoder;
 
 typedef struct Render_Buffer {
@@ -32,23 +33,48 @@ typedef struct Render_Buffer {
 
 	uint32_t maxFrames;
 	uint32_t curFrame;
-
+	uint64_t size; // size of a single frame, total size = maxFrame * size
 } Render_Buffer;
 
 typedef struct Render_ComputeEncoder {
-
 	Render_CmdPoolHandle cmdPool;
 
-	Render_CmdHandle currentCmd;
+	Render_CmdHandle cmd;
 } Render_ComputeEncoder;
 
 typedef struct Render_GraphicsEncoder {
+	Render_CmdPoolHandle cmdPool;
 
 	Render_CmdHandle cmd;
 	Render_View view;
 } Render_GraphicsEncoder;
 
+typedef enum Render_DescriptorType {
+	Render_DT_TEXTURE,
+	Render_DT_SAMPLER,
+	Render_DT_BUFFER,
+	Render_DT_ROOT_CONSTANT
+} Render_DescriptorType;
 
+typedef struct Render_DescriptorDesc
+{
+	char const * name;
+
+	Render_DescriptorType type;
+	uint64_t offset;
+	uint64_t size; // for buffers
+
+	union
+	{
+		Render_TextureHandle texture;
+		Render_SamplerHandle sampler;
+		Render_BufferHandle buffer;
+		void const* rootConstant;
+//		TheForge_AcclerationStructureHandle const* pAccelerationStructures;
+	};
+
+
+} Render_DescriptorDesc;
 
 
 typedef struct Render_Renderer {
@@ -97,3 +123,9 @@ typedef struct Render_FrameBuffer {
 	Render_GraphicsEncoder graphicsEncoder;
 
 } Render_FrameBuffer;
+
+typedef struct Render_ShaderObject {
+	ShaderCompiler_Output output;
+	char const name[64];
+	char const entryPoint[64];
+} Render_ShaderObject;

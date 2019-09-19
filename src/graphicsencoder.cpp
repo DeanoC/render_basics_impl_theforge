@@ -1,9 +1,35 @@
 #include "al2o3_platform/platform.h"
+#include "al2o3_memory/memory.h"
 #include "tiny_imageformat/tinyimageformat_query.h"
 #include "tiny_imageformat/tinyimageformat_bits.h"
 
 #include "render_basics/theforge/api.h"
 #include "render_basics/api.h"
+
+AL2O3_EXTERN_C Render_GraphicsEncoderHandle Render_GraphicsEncoderCreate(Render_RendererHandle renderer,
+																																				 Render_CmdPoolHandle cmdPoolHandle) {
+	auto encoder = (Render_GraphicsEncoderHandle) MEMORY_CALLOC(1, sizeof(Render_GraphicsEncoder));
+	if (!encoder) {
+		return nullptr;
+	}
+
+	TheForge_AddCmd(cmdPoolHandle, false, &encoder->cmd);
+	encoder->cmdPool = cmdPoolHandle;
+
+	return encoder;
+}
+
+AL2O3_EXTERN_C void Render_GraphicsEncoderDestroy(Render_RendererHandle renderer, Render_GraphicsEncoderHandle encoder){
+	if(!renderer || !encoder) return;
+
+	// if this fires probably trying to free an explicit encoder like in Framebuffer
+	ASSERT(encoder->cmdPool);
+
+	TheForge_RemoveCmd(encoder->cmdPool, encoder->cmd);
+
+	MEMORY_FREE(encoder);
+}
+
 
 AL2O3_EXTERN_C void Render_GraphicsEncoderBindRenderTargets(Render_GraphicsEncoderHandle encoder,
 																														uint32_t count,
@@ -96,3 +122,34 @@ AL2O3_EXTERN_C void Render_GraphicsEncoderSetViewport(Render_GraphicsEncoderHand
 	TheForge_CmdSetViewport(encoder->cmd, rect.x, rect.y, rect.z, rect.w, depth.x, depth.y);
 }
 
+AL2O3_EXTERN_C void Render_GraphicsEncoderBindDescriptors(Render_GraphicsEncoderHandle encoder,
+																													Render_DescriptorBinderHandle descriptorBinder,
+																													Render_RootSignatureHandle rootSignature,
+																													uint32_t numDescriptors,
+																													Render_DescriptorDesc *desc) {
+	TheForge_DescriptorData* dd = (TheForge_DescriptorData*) STACK_ALLOC(sizeof(TheForge_DescriptorData) * numDescriptors);
+
+	for (uint32_t i = 0; i < numDescriptors;++i) {
+		dd[i].pName = desc[i].name;
+		dd[i].count = 1;
+		dd[i].pOffsets = &desc[i].offset;
+		switch(desc[i].type) {
+
+			case Render_DT_TEXTURE:
+				dd[i].pTextures = &desc[i].texture;
+				break;
+			case Render_DT_SAMPLER:
+				dd[i].pSamplers = &desc[i].sampler;
+				break;
+			case Render_DT_BUFFER:
+				dd[i].pSizes = &desc[i].size;
+				dd[i].pBuffers = &desc[i].buffer->buffer;
+				break;
+			case Render_DT_ROOT_CONSTANT:
+				dd[i].pRootConstant = &desc[i].rootConstant;
+				break;
+		}
+	}
+
+	TheForge_CmdBindDescriptors(encoder->cmd, descriptorBinder, rootSignature, numDescriptors, dd);
+}

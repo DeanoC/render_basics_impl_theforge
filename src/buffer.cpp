@@ -107,6 +107,8 @@ AL2O3_EXTERN_C void Render_BufferDestroy(Render_RendererHandle renderer, Render_
 }
 
 AL2O3_EXTERN_C void Render_BufferUpload(Render_BufferHandle buffer, Render_BufferUpdateDesc const *update) {
+	buffer->curFrame = (buffer->curFrame + 1) % buffer->maxFrames;
+
 	TheForge_BufferUpdateDesc const tfUpdate{
 			buffer->buffer,
 			update->data,
@@ -115,8 +117,5 @@ AL2O3_EXTERN_C void Render_BufferUpload(Render_BufferHandle buffer, Render_Buffe
 			update->size
 	};
 
-	buffer->curFrame = (buffer->curFrame + 1) % buffer->maxFrames;
-
-	TheForge_UpdateBuffer(&tfUpdate, false);
-
+	TheForge_UpdateBuffer(&tfUpdate, true);
 }

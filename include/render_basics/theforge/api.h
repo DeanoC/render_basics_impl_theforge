@@ -16,10 +16,12 @@
 #define Render_RootSignature TheForge_RootSignature
 #define Render_RenderTarget TheForge_RenderTarget
 #define Render_Sampler TheForge_Sampler
+#define Render_Shader TheForge_Shader
 #define Render_Texture TheForge_Texture
 #define Render_VertexLayout TheForge_VertexLayout const
 
 #include "render_basics/api.h"
+#include "render_basics/shader.h"
 #include "render_basics/view.h"
 
 typedef struct Render_BlitEncoder {
@@ -125,7 +127,8 @@ typedef struct Render_FrameBuffer {
 } Render_FrameBuffer;
 
 typedef struct Render_ShaderObject {
+	TheForge_ShaderStage shaderType;
 	ShaderCompiler_Output output;
-	char const name[64];
-	char const entryPoint[64];
+	char name[64];
+	char entryPoint[64];
 } Render_ShaderObject;

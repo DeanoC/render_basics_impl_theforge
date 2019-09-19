@@ -128,11 +128,11 @@ AL2O3_EXTERN_C void Render_GraphicsEncoderBindDescriptors(Render_GraphicsEncoder
 																													uint32_t numDescriptors,
 																													Render_DescriptorDesc *desc) {
 	TheForge_DescriptorData* dd = (TheForge_DescriptorData*) STACK_ALLOC(sizeof(TheForge_DescriptorData) * numDescriptors);
+	uint64_t *offsets = (uint64_t *) STACK_ALLOC(sizeof(uint64_t) * numDescriptors);
 
 	for (uint32_t i = 0; i < numDescriptors;++i) {
 		dd[i].pName = desc[i].name;
 		dd[i].count = 1;
-		dd[i].pOffsets = &desc[i].offset;
 		switch(desc[i].type) {
 
 			case Render_DT_TEXTURE:
@@ -141,7 +141,8 @@ AL2O3_EXTERN_C void Render_GraphicsEncoderBindDescriptors(Render_GraphicsEncoder
 			case Render_DT_SAMPLER:
 				dd[i].pSamplers = &desc[i].sampler;
 				break;
-			case Render_DT_BUFFER:
+			case Render_DT_BUFFER: offsets[i] = ((desc[i].buffer->curFrame) * desc[i].buffer->size) + desc[i].offset;
+				dd[i].pOffsets = &offsets[i];
 				dd[i].pSizes = &desc[i].size;
 				dd[i].pBuffers = &desc[i].buffer->buffer;
 				break;

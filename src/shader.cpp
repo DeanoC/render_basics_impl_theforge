@@ -81,9 +81,9 @@ AL2O3_EXTERN_C Render_ShaderHandle Render_ShaderCreate(Render_RendererHandle ren
 
 #if AL2O3_PLATFORM == AL2O3_PLATFORM_APPLE_MAC
 		TheForge_ShaderStageDesc ssdesc {};
-		ssdesc.entryPoint = desc->shaders[i].entryPoint;
-		ssdesc.code = (char const*)desc->shaders[i]->output.shader;
-		ssdesc.name = desc->shaders[i]->name;
+		ssdesc.entryPoint = shaderObjects[i]->entryPoint;
+		ssdesc.code = (char const*)shaderObjects[i]->output.shader;
+		ssdesc.name = shaderObjects[i]->name;
 		ssdesc.macroCount = 0; // TODO
 #else
 		TheForge_BinaryShaderStageDesc ssdesc{};
@@ -107,13 +107,14 @@ AL2O3_EXTERN_C Render_ShaderHandle Render_ShaderCreate(Render_RendererHandle ren
 				break;
 			case TheForge_SS_RAYTRACING: sdesc.comp = ssdesc;
 				break;
+			default: return nullptr;
 		}
 	}
 
 	TheForge_ShaderHandle shader;
 
 #if AL2O3_PLATFORM == AL2O3_PLATFORM_APPLE_MAC
-	TheForge_AddShader(ctx->renderer, &sdesc, &shader);
+	TheForge_AddShader(renderer->renderer, &sdesc, &shader);
 #else
 	TheForge_AddShaderBinary(renderer->renderer, &sdesc, &shader);
 #endif

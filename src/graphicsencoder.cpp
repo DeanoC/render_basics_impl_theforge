@@ -20,8 +20,11 @@ AL2O3_EXTERN_C Render_GraphicsEncoderHandle Render_GraphicsEncoderCreate(Render_
 	return encoder;
 }
 
-AL2O3_EXTERN_C void Render_GraphicsEncoderDestroy(Render_RendererHandle renderer, Render_GraphicsEncoderHandle encoder){
-	if(!renderer || !encoder) return;
+AL2O3_EXTERN_C void Render_GraphicsEncoderDestroy(Render_RendererHandle renderer,
+																									Render_GraphicsEncoderHandle encoder) {
+	if (!renderer || !encoder) {
+		return;
+	}
 
 	// if this fires probably trying to free an explicit encoder like in Framebuffer
 	ASSERT(encoder->cmdPool);
@@ -128,27 +131,25 @@ AL2O3_EXTERN_C void Render_GraphicsEncoderBindDescriptors(Render_GraphicsEncoder
 																													Render_RootSignatureHandle rootSignature,
 																													uint32_t numDescriptors,
 																													Render_DescriptorDesc *desc) {
-	TheForge_DescriptorData* dd = (TheForge_DescriptorData*) STACK_ALLOC(sizeof(TheForge_DescriptorData) * numDescriptors);
+	TheForge_DescriptorData
+			*dd = (TheForge_DescriptorData *) STACK_ALLOC(sizeof(TheForge_DescriptorData) * numDescriptors);
 	uint64_t *offsets = (uint64_t *) STACK_ALLOC(sizeof(uint64_t) * numDescriptors);
 
-	for (uint32_t i = 0; i < numDescriptors;++i) {
+	for (uint32_t i = 0; i < numDescriptors; ++i) {
 		dd[i].pName = desc[i].name;
 		dd[i].count = 1;
-		switch(desc[i].type) {
+		switch (desc[i].type) {
 
-			case Render_DT_TEXTURE:
-				dd[i].pTextures = &desc[i].texture;
+			case Render_DT_TEXTURE: dd[i].pTextures = &desc[i].texture;
 				break;
-			case Render_DT_SAMPLER:
-				dd[i].pSamplers = &desc[i].sampler;
+			case Render_DT_SAMPLER: dd[i].pSamplers = &desc[i].sampler;
 				break;
 			case Render_DT_BUFFER: offsets[i] = ((desc[i].buffer->curFrame) * desc[i].buffer->size) + desc[i].offset;
 				dd[i].pOffsets = &offsets[i];
 				dd[i].pSizes = &desc[i].size;
 				dd[i].pBuffers = &desc[i].buffer->buffer;
 				break;
-			case Render_DT_ROOT_CONSTANT:
-				dd[i].pRootConstant = &desc[i].rootConstant;
+			case Render_DT_ROOT_CONSTANT: dd[i].pRootConstant = &desc[i].rootConstant;
 				break;
 		}
 	}
@@ -190,3 +191,73 @@ AL2O3_EXTERN_C void Render_GraphicsEncoderDrawIndexedInstanced(Render_GraphicsEn
 	TheForge_CmdDrawIndexedInstanced(encoder->cmd, indexCount, firstIndex, instanceCount, firstVertex, firstInstance);
 }
 
+AL2O3_EXTERN_C void Render_GraphicsEncoderTransition(Render_GraphicsEncoderHandle encoder,
+																										 uint32_t numBuffers,
+																										 Render_BufferHandle const *buffers,
+																										 Render_BufferTransitionType const *bufferTransitions,
+																										 uint32_t numTextures,
+																										 Render_TextureHandle const *textures,
+																										 Render_TextureTransitionType const *textureTransitions) {
+	if (!encoder && !buffers && !textures && !numBuffers && !numTextures) {
+		return;
+	}
+
+	auto bufferBarriers = (TheForge_BufferBarrier *) STACK_ALLOC(sizeof(TheForge_BufferBarrier) * numBuffers);
+
+	for (uint32_t i = 0; i < numBuffers; ++i) {
+		bufferBarriers[i].buffer = buffers[i]->buffer;
+		uint32_t newState = 0;
+		for (uint32_t j = 0x1; j < Render_BTT_MAX; j = j << 1) {
+			switch ((Render_BufferTransitionType) ((uint32_t const) bufferTransitions[i] & j)) {
+				case Render_BTT_VERTEX_OR_CONSTANT_BUFFER: newState |= TheForge_RS_VERTEX_AND_CONSTANT_BUFFER;
+					break;
+				case Render_BTT_INDEX_BUFFER: newState |= TheForge_RS_INDEX_BUFFER;
+					break;
+				case Render_BTT_UNORDERED_ACCESS: newState |= TheForge_RS_UNORDERED_ACCESS;
+					break;
+				case Render_BTT_INDIRECT_ARGUMENT: newState |= TheForge_RS_INDIRECT_ARGUMENT;
+					break;
+				case Render_BTT_COPY_DEST: newState |= TheForge_RS_COPY_DEST;
+					break;
+				case Render_BTT_COPY_SOURCE: newState |= TheForge_RS_COPY_SOURCE;
+					break;
+
+				default:
+				case Render_BTT_UNDEFINED: break;
+			}
+		}
+		bufferBarriers[i].newState = (TheForge_ResourceState) newState;
+		bufferBarriers[i].split = false;
+	}
+
+	auto textureBarriers = (TheForge_TextureBarrier *) STACK_ALLOC(sizeof(TheForge_TextureBarrier) * numTextures);
+	for (uint32_t i = 0; i < numTextures; ++i) {
+		textureBarriers[i].texture = textures[i];
+		uint32_t newState = 0;
+		for (uint32_t j = 0x1; j < Render_TTT_MAX; j = j << 1) {
+			switch ((Render_TextureTransitionType) ((uint32_t const) textureTransitions[i] & j)) {
+				case Render_TTT_RENDER_TARGET: newState |= TheForge_RS_RENDER_TARGET;
+					break;
+				case Render_TTT_UNORDERED_ACCESS: newState |= TheForge_RS_UNORDERED_ACCESS;
+					break;
+				case Render_TTT_DEPTH_WRITE: newState |= TheForge_RS_DEPTH_WRITE;
+					break;
+				case Render_TTT_DEPTH_READ: newState |= TheForge_RS_DEPTH_READ;
+					break;
+				case Render_TTT_COPY_DEST: newState |= TheForge_RS_COPY_DEST;
+					break;
+				case Render_TTT_COPY_SOURCE: newState |= TheForge_RS_COPY_SOURCE;
+					break;
+				case Render_TTT_PRESENT: newState |= TheForge_RS_PRESENT;
+					break;
+
+				default:
+				case Render_TTT_UNDEFINED:break;
+			}
+		}
+		textureBarriers[i].newState = (TheForge_ResourceState) newState;
+		textureBarriers[i].split = false;
+	}
+
+	TheForge_CmdResourceBarrier(encoder->cmd, numBuffers, bufferBarriers, numTextures, textureBarriers);
+}

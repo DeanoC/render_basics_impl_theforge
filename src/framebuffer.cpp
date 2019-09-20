@@ -174,16 +174,18 @@ AL2O3_EXTERN_C void Render_FrameBufferNewFrame(Render_FrameBufferHandle ctx) {
 
 	// insert write barrier for render target if we are more the N frames ahead
 	if (ctx->depthBuffer) {
-		TheForge_TextureBarrier barriers[] = {
-				{TheForge_RenderTargetGetTexture(ctx->currentColourTarget), TheForge_RS_RENDER_TARGET},
-				{TheForge_RenderTargetGetTexture(ctx->depthBuffer), TheForge_RS_DEPTH_WRITE},
+		Render_TextureHandle textures[] = {
+				TheForge_RenderTargetGetTexture(ctx->currentColourTarget),
+				TheForge_RenderTargetGetTexture(ctx->depthBuffer)
 		};
-		TheForge_CmdResourceBarrier(ctx->currentCmd, 0, nullptr, 2, barriers);
+		Render_TextureTransitionType textureTransitions[] = {
+				Render_TTT_RENDER_TARGET,
+				(Render_TextureTransitionType) (Render_TTT_DEPTH_READ | Render_TTT_DEPTH_WRITE)};
+		Render_GraphicsEncoderTransition(&ctx->graphicsEncoder, 0, nullptr, nullptr, 2, textures, textureTransitions);
 	} else {
-		TheForge_TextureBarrier barriers[] = {
-				{TheForge_RenderTargetGetTexture(ctx->currentColourTarget), TheForge_RS_RENDER_TARGET},
-		};
-		TheForge_CmdResourceBarrier(ctx->currentCmd, 0, nullptr, 1, barriers);
+		Render_TextureHandle textures[] = {TheForge_RenderTargetGetTexture(ctx->currentColourTarget)};
+		Render_TextureTransitionType textureTransitions[] = {Render_TTT_RENDER_TARGET};
+		Render_GraphicsEncoderTransition(&ctx->graphicsEncoder, 0, nullptr, nullptr, 1, textures, textureTransitions);
 	}
 
 }
@@ -225,19 +227,12 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 		ImguiBindings_Render(ctx->imguiBindings, ctx->currentCmd);
 	}
 
-	TheForge_CmdBindRenderTargets(ctx->currentCmd,
-																0,
-																nullptr, nullptr,
-																nullptr,
-																nullptr, nullptr,
-																-1,
-																-1);
+	Render_GraphicsEncoderBindRenderTargets(&ctx->graphicsEncoder, 0, nullptr, false, false, false);
 
-	TheForge_TextureBarrier barriers[] = {
-			{TheForge_RenderTargetGetTexture(renderTarget), TheForge_RS_PRESENT},
-	};
+	Render_TextureHandle textures[] = {TheForge_RenderTargetGetTexture(renderTarget)};
+	Render_TextureTransitionType textureTransitions[] = {Render_TTT_PRESENT};
+	Render_GraphicsEncoderTransition(&ctx->graphicsEncoder, 0, nullptr, nullptr, 1, textures, textureTransitions);
 
-	TheForge_CmdResourceBarrier(ctx->currentCmd, 0, nullptr, 1, barriers);
 	TheForge_EndCmd(ctx->currentCmd);
 
 	TheForge_QueueSubmit(ctx->presentQueue,

@@ -173,21 +173,15 @@ AL2O3_EXTERN_C void Render_FrameBufferNewFrame(Render_FrameBufferHandle ctx) {
 	TheForge_BeginCmd(ctx->currentCmd);
 
 	// insert write barrier for render target if we are more the N frames ahead
-	if (ctx->depthBuffer) {
-		Render_TextureHandle textures[] = {
-				TheForge_RenderTargetGetTexture(ctx->currentColourTarget),
-				TheForge_RenderTargetGetTexture(ctx->depthBuffer)
-		};
-		Render_TextureTransitionType textureTransitions[] = {
-				Render_TTT_RENDER_TARGET,
-				(Render_TextureTransitionType) (Render_TTT_DEPTH_READ | Render_TTT_DEPTH_WRITE)};
-		Render_GraphicsEncoderTransition(&ctx->graphicsEncoder, 0, nullptr, nullptr, 2, textures, textureTransitions);
-	} else {
-		Render_TextureHandle textures[] = {TheForge_RenderTargetGetTexture(ctx->currentColourTarget)};
-		Render_TextureTransitionType textureTransitions[] = {Render_TTT_RENDER_TARGET};
-		Render_GraphicsEncoderTransition(&ctx->graphicsEncoder, 0, nullptr, nullptr, 1, textures, textureTransitions);
-	}
-
+	Render_TextureHandle textures[] = {
+			TheForge_RenderTargetGetTexture(ctx->currentColourTarget),
+			ctx->depthBuffer ? TheForge_RenderTargetGetTexture(ctx->depthBuffer) : nullptr
+	};
+	Render_TextureTransitionType textureTransitions[] = {
+			Render_TTT_RENDER_TARGET,
+			(Render_TextureTransitionType) (Render_TTT_DEPTH_READ | Render_TTT_DEPTH_WRITE)};
+	Render_GraphicsEncoderTransition(&ctx->graphicsEncoder, 0, nullptr, nullptr,
+																	 ctx->depthBuffer ? 2 : 1, textures, textureTransitions);
 }
 
 AL2O3_EXTERN_C ImguiBindings_ContextHandle Render_FrameBufferCreateImguiBindings(
@@ -304,6 +298,7 @@ AL2O3_EXTERN_C TinyImageFormat Render_FrameBufferDepthFormat(Render_FrameBufferH
 	ASSERT(desc);
 	return desc->format;
 }
+
 AL2O3_EXTERN_C float const *Render_FrameBufferImguiScaleOffsetMatrix(Render_FrameBufferHandle frameBuffer) {
 	if (frameBuffer->imguiBindings) {
 		return ImguiBindings_GetScaleOffsetMatrix(frameBuffer->imguiBindings);

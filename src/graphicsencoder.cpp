@@ -5,6 +5,7 @@
 
 #include "render_basics/theforge/api.h"
 #include "render_basics/api.h"
+#include "render_basics/graphicsencoder.h"
 
 AL2O3_EXTERN_C Render_GraphicsEncoderHandle Render_GraphicsEncoderCreate(Render_RendererHandle renderer,
 																																				 Render_CmdPoolHandle cmdPoolHandle) {
@@ -154,3 +155,38 @@ AL2O3_EXTERN_C void Render_GraphicsEncoderBindDescriptors(Render_GraphicsEncoder
 
 	TheForge_CmdBindDescriptors(encoder->cmd, descriptorBinder, rootSignature, numDescriptors, dd);
 }
+
+AL2O3_EXTERN_C void Render_GraphicsEncoderBindPipeline(Render_GraphicsEncoderHandle encoder,
+																											 Render_GraphicsPipelineHandle pipeline) {
+	TheForge_CmdBindPipeline(encoder->cmd, pipeline);
+}
+
+AL2O3_EXTERN_C void Render_GraphicsEncoderDraw(Render_GraphicsEncoderHandle encoder,
+																							 uint32_t vertexCount,
+																							 uint32_t firstVertex) {
+	TheForge_CmdDraw(encoder->cmd, vertexCount, firstVertex);
+}
+
+AL2O3_EXTERN_C void Render_GraphicsEncoderDrawInstanced(Render_GraphicsEncoderHandle encoder,
+																												uint32_t vertexCount,
+																												uint32_t firstVertex,
+																												uint32_t instanceCount,
+																												uint32_t firstInstance) {
+	TheForge_CmdDrawInstanced(encoder->cmd, vertexCount, firstVertex, instanceCount, firstInstance);
+}
+AL2O3_EXTERN_C void Render_GraphicsEncoderDrawIndexed(Render_GraphicsEncoderHandle encoder,
+																											uint32_t indexCount,
+																											uint32_t firstIndex,
+																											uint32_t firstVertex) {
+	TheForge_CmdDrawIndexed(encoder->cmd, indexCount, firstIndex, firstVertex);
+
+}
+AL2O3_EXTERN_C void Render_GraphicsEncoderDrawIndexedInstanced(Render_GraphicsEncoderHandle encoder,
+																															 uint32_t indexCount,
+																															 uint32_t firstIndex,
+																															 uint32_t instanceCount,
+																															 uint32_t firstVertex,
+																															 uint32_t firstInstance) {
+	TheForge_CmdDrawIndexedInstanced(encoder->cmd, indexCount, firstIndex, instanceCount, firstVertex, firstInstance);
+}
+

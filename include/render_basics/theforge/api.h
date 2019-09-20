@@ -9,8 +9,10 @@
 #define Render_BlendState TheForge_BlendState
 #define Render_CmdPool TheForge_CmdPool
 #define Render_Cmd TheForge_Cmd
+#define Render_ComputePipeline TheForge_Pipeline
 #define Render_DepthState TheForge_DepthState
 #define Render_DescriptorBinder TheForge_DescriptorBinder
+#define Render_GraphicsPipeline TheForge_Pipeline
 #define Render_Queue TheForge_Queue
 #define Render_RasteriserState TheForge_RasterizerState
 #define Render_RootSignature TheForge_RootSignature
@@ -51,32 +53,6 @@ typedef struct Render_GraphicsEncoder {
 	Render_View view;
 } Render_GraphicsEncoder;
 
-typedef enum Render_DescriptorType {
-	Render_DT_TEXTURE,
-	Render_DT_SAMPLER,
-	Render_DT_BUFFER,
-	Render_DT_ROOT_CONSTANT
-} Render_DescriptorType;
-
-typedef struct Render_DescriptorDesc
-{
-	char const * name;
-
-	Render_DescriptorType type;
-	uint64_t offset;
-	uint64_t size; // for buffers
-
-	union
-	{
-		Render_TextureHandle texture;
-		Render_SamplerHandle sampler;
-		Render_BufferHandle buffer;
-		void const* rootConstant;
-//		TheForge_AcclerationStructureHandle const* pAccelerationStructures;
-	};
-
-
-} Render_DescriptorDesc;
 
 
 typedef struct Render_Renderer {

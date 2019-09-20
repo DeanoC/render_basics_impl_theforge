@@ -309,3 +309,10 @@ AL2O3_EXTERN_C TinyImageFormat Render_FrameBufferDepthFormat(Render_FrameBufferH
 	ASSERT(desc);
 	return desc->format;
 }
+AL2O3_EXTERN_C float const *Render_FrameBufferImguiScaleOffsetMatrix(Render_FrameBufferHandle frameBuffer) {
+	if (frameBuffer->imguiBindings) {
+		return ImguiBindings_GetScaleOffsetMatrix(frameBuffer->imguiBindings);
+	} else {
+		return nullptr;
+	}
+}

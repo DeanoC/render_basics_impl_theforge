@@ -32,8 +32,11 @@ set(Src
 		computeencoder.cpp
 		framebuffer.cpp
 		graphicsencoder.cpp
+		pipeline.cpp
 		shader.cpp
 		stock.cpp
+		texture.cpp
+		rootsignature.cpp
 		view.cpp
 		visualdebug.cpp
 		visdebug.hpp

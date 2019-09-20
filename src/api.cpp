@@ -105,3 +105,23 @@ AL2O3_EXTERN_C Render_CmdPoolHandle Render_RendererGetPrimaryCommandPool(Render_
 	default: return nullptr;
 	}
 }
+
+AL2O3_EXTERN_C Render_DescriptorBinderHandle Render_DescriptorBinderCreate(Render_RendererHandle renderer,
+																																					 uint32_t descCount,
+																																					 Render_DescriptorBinderDesc const *descs) {
+	if (!renderer || descCount == 0 || descs == NULL) {
+		return nullptr;
+	}
+	Render_DescriptorBinderHandle db = nullptr;
+	TheForge_AddDescriptorBinder(renderer->renderer, 0, descCount, (TheForge_DescriptorBinderDesc const *) descs, &db);
+	return db;
+}
+
+AL2O3_EXTERN_C void Render_DescriptorBinderDestroy(Render_RendererHandle renderer,
+																									 Render_DescriptorBinderHandle descBinder) {
+	if (!renderer || !descBinder) {
+		return;
+	}
+
+	TheForge_RemoveDescriptorBinder(renderer->renderer, descBinder);
+}

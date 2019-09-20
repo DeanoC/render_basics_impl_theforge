@@ -10,7 +10,6 @@
 #include "render_basics/graphicsencoder.h"
 #include "visdebug.hpp"
 
-
 AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 		Render_RendererHandle renderer,
 		Render_FrameBufferDesc const *desc) {
@@ -55,8 +54,7 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 	swapChainDesc.sampleCount = TheForge_SC_1;
 	swapChainDesc.sampleQuality = 0;
 	swapChainDesc.colorFormat = desc->colourFormat != TinyImageFormat_UNDEFINED ?
-															desc->colourFormat :
-															TheForge_GetRecommendedSwapchainFormat(false);
+															desc->colourFormat : TinyImageFormat_B8G8R8A8_SRGB;
 	swapChainDesc.enableVsync = false;
 	TheForge_AddSwapChain(tfrenderer, &swapChainDesc, &fb->swapChain);
 
@@ -83,7 +81,7 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 		fb->visualDebug = RenderTF_VisualDebugCreate(fb);
 	}
 
-	if(desc->embeddedImgui) {
+	if (desc->embeddedImgui) {
 		ImguiBindings_Shared shared = {
 				Render_GetStockSampler(renderer, Render_SST_LINEAR),
 				Render_GetStockBlendState(renderer, Render_SBS_PORTER_DUFF),
@@ -100,7 +98,7 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 																						 swapChainDesc.colorFormat,
 																						 TheForge_SC_1,
 																						 0);
-		if(fb->imguiBindings) {
+		if (fb->imguiBindings) {
 			ImguiBindings_SetWindowSize(fb->imguiBindings,
 																	desc->frameBufferWidth,
 																	desc->frameBufferHeight,
@@ -180,12 +178,12 @@ AL2O3_EXTERN_C void Render_FrameBufferNewFrame(Render_FrameBufferHandle ctx) {
 				{TheForge_RenderTargetGetTexture(ctx->currentColourTarget), TheForge_RS_RENDER_TARGET},
 				{TheForge_RenderTargetGetTexture(ctx->depthBuffer), TheForge_RS_DEPTH_WRITE},
 		};
-		TheForge_CmdResourceBarrier(ctx->currentCmd, 0, nullptr, 2, barriers, false);
+		TheForge_CmdResourceBarrier(ctx->currentCmd, 0, nullptr, 2, barriers);
 	} else {
 		TheForge_TextureBarrier barriers[] = {
 				{TheForge_RenderTargetGetTexture(ctx->currentColourTarget), TheForge_RS_RENDER_TARGET},
 		};
-		TheForge_CmdResourceBarrier(ctx->currentCmd, 0, nullptr, 1, barriers, false);
+		TheForge_CmdResourceBarrier(ctx->currentCmd, 0, nullptr, 1, barriers);
 	}
 
 }
@@ -239,12 +237,7 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 			{TheForge_RenderTargetGetTexture(renderTarget), TheForge_RS_PRESENT},
 	};
 
-	TheForge_CmdResourceBarrier(ctx->currentCmd,
-															0,
-															nullptr,
-															1,
-															barriers,
-															true);
+	TheForge_CmdResourceBarrier(ctx->currentCmd, 0, nullptr, 1, barriers);
 	TheForge_EndCmd(ctx->currentCmd);
 
 	TheForge_QueueSubmit(ctx->presentQueue,
@@ -265,10 +258,10 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 }
 
 AL2O3_EXTERN_C void Render_FrameBufferUpdate(Render_FrameBufferHandle frameBuffer,
-		uint32_t width,
-		uint32_t height,
-		float backingScaleX, float backingScaleY,
-		double deltaMS) {
+																						 uint32_t width,
+																						 uint32_t height,
+																						 float backingScaleX, float backingScaleY,
+																						 double deltaMS) {
 	if (!frameBuffer || !frameBuffer->imguiBindings) {
 		return;
 	}

@@ -1,7 +1,6 @@
 #include "al2o3_platform/platform.h"
 #include "al2o3_memory/memory.h"
 #include "al2o3_platform/visualdebug.h"
-#include "gfx_theforge/resourceloader.h"
 #include "render_basics/theforge/api.h"
 #include "render_basics/buffer.h"
 #include "visdebug.hpp"
@@ -113,24 +112,21 @@ void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd) {
 		vd->gpuLineIndexDataCount = ibDesc.indexCount;
 	}
 
-	TheForge_BufferUpdateDesc updateGPUVertices{};
-	updateGPUVertices.buffer = vd->gpuVertexData->buffer;
-	updateGPUVertices.pData = CADT_VectorData(vd->vertexData);
-	updateGPUVertices.mSrcOffset = 0;
-	updateGPUVertices.mDstOffset = 0;
-	updateGPUVertices.mSize = CADT_VectorSize(vd->vertexData) * CADT_VectorElementSize(vd->vertexData);
-	TheForge_UpdateBuffer(&updateGPUVertices, false);
+	Render_BufferUpdateDesc const updateGPUVertices{
+			CADT_VectorData(vd->vertexData),
+			0,
+			CADT_VectorSize(vd->vertexData) * CADT_VectorElementSize(vd->vertexData)
+	};
+
+	Render_BufferUpload(vd->gpuVertexData, &updateGPUVertices);
 
 	if (CADT_VectorSize(vd->lineIndexData) > 0) {
-
-		TheForge_BufferUpdateDesc updateGPULineIndices{};
-		updateGPULineIndices.buffer = vd->gpuLineIndexData->buffer;
-		updateGPULineIndices.pData = CADT_VectorData(vd->lineIndexData);
-		updateGPULineIndices.mSrcOffset = 0;
-		updateGPULineIndices.mDstOffset = 0;
-		updateGPULineIndices.mSize = CADT_VectorSize(vd->lineIndexData) * sizeof(uint32_t);
-
-		TheForge_UpdateBuffer(&updateGPULineIndices, false);
+		Render_BufferUpdateDesc const updateGPULineIndices{
+				CADT_VectorData(vd->lineIndexData),
+				0,
+				CADT_VectorSize(vd->lineIndexData) * sizeof(uint32_t),
+		};
+		Render_BufferUpload(vd->gpuLineIndexData, &updateGPULineIndices);
 		CADT_VectorResize(vd->lineIndexData, 0);
 	}
 

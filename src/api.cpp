@@ -97,13 +97,28 @@ AL2O3_EXTERN_C Render_QueueHandle Render_RendererGetPrimaryQueue(Render_Renderer
 
 AL2O3_EXTERN_C Render_CmdPoolHandle Render_RendererGetPrimaryCommandPool(Render_RendererHandle ctx,
 																																				 Render_QueueType queueType) {
-	if(!ctx) return nullptr;
-	switch(queueType) {
+	if (!ctx) {
+		return nullptr;
+	}
+	switch (queueType) {
 		case Render_QT_GRAPHICS: return ctx->graphicsCmdPool;
 		case Render_QT_COMPUTE: return ctx->computeCmdPool;
 		case Render_QT_BLITTER: return ctx->blitCmdPool;
-	default: return nullptr;
+		default: return nullptr;
 	}
+}
+
+AL2O3_EXTERN_C bool Render_RendererCanShaderReadFrom(Render_RendererHandle renderer, TinyImageFormat format) {
+	return TheForge_CanShaderReadFrom(renderer->renderer, format);
+}
+AL2O3_EXTERN_C bool Render_RendererCanColourWriteTo(Render_RendererHandle renderer, TinyImageFormat format) {
+	return TheForge_CanColorWriteTo(renderer->renderer, format);
+}
+AL2O3_EXTERN_C bool Render_RendererCanShaWriteTo(Render_RendererHandle renderer, TinyImageFormat format) {
+	return TheForge_CanShaderWriteTo(renderer->renderer, format);
+}
+AL2O3_EXTERN_C void Render_QueueWaitIdle(Render_QueueHandle queue) {
+	TheForge_WaitQueueIdle(queue);
 }
 
 AL2O3_EXTERN_C Render_DescriptorBinderHandle Render_DescriptorBinderCreate(Render_RendererHandle renderer,

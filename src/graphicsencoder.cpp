@@ -126,41 +126,20 @@ AL2O3_EXTERN_C void Render_GraphicsEncoderSetViewport(Render_GraphicsEncoderHand
 	TheForge_CmdSetViewport(encoder->cmd, rect.x, rect.y, rect.z, rect.w, depth.x, depth.y);
 }
 
-AL2O3_EXTERN_C void Render_GraphicsEncoderBindDescriptors(Render_GraphicsEncoderHandle encoder,
-																													Render_DescriptorBinderHandle descriptorBinder,
-																													Render_RootSignatureHandle rootSignature,
-																													uint32_t numDescriptors,
-																													Render_DescriptorDesc *desc) {
-	TheForge_DescriptorData
-			*dd = (TheForge_DescriptorData *) STACK_ALLOC(sizeof(TheForge_DescriptorData) * numDescriptors);
-	uint64_t *offsets = (uint64_t *) STACK_ALLOC(sizeof(uint64_t) * numDescriptors);
-
-	for (uint32_t i = 0; i < numDescriptors; ++i) {
-		dd[i].pName = desc[i].name;
-		dd[i].count = 1;
-		switch (desc[i].type) {
-
-			case Render_DT_TEXTURE: dd[i].pTextures = &desc[i].texture;
-				break;
-			case Render_DT_SAMPLER: dd[i].pSamplers = &desc[i].sampler;
-				break;
-			case Render_DT_BUFFER: offsets[i] = ((desc[i].buffer->curFrame) * desc[i].buffer->size) + desc[i].offset;
-				dd[i].pOffsets = &offsets[i];
-				dd[i].pSizes = &desc[i].size;
-				dd[i].pBuffers = &desc[i].buffer->buffer;
-				break;
-			case Render_DT_ROOT_CONSTANT: dd[i].pRootConstant = &desc[i].rootConstant;
-				break;
-		}
-	}
-
-	TheForge_CmdBindDescriptors(encoder->cmd, descriptorBinder, rootSignature, numDescriptors, dd);
-}
-
 AL2O3_EXTERN_C void Render_GraphicsEncoderBindPipeline(Render_GraphicsEncoderHandle encoder,
 																											 Render_GraphicsPipelineHandle pipeline) {
 	TheForge_CmdBindPipeline(encoder->cmd, pipeline);
 }
+
+AL2O3_EXTERN_C void Render_GraphicsEncoderBindDescriptorSet(Render_GraphicsEncoderHandle encoder,
+																														Render_DescriptorSetHandle set,
+																														uint32_t setIndex) {
+	// frame has changed and we have frequency >= frame rate adjust set index
+	uint32_t setIndexOffset = 0;
+
+	TheForge_CmdBindDescriptorSet(encoder->cmd, set->setIndexOffset + setIndex, set->descriptorSet);
+}
+
 
 AL2O3_EXTERN_C void Render_GraphicsEncoderDraw(Render_GraphicsEncoderHandle encoder,
 																							 uint32_t vertexCount,

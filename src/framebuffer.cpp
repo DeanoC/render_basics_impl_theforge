@@ -25,7 +25,7 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 	fb->renderer = renderer;
 	fb->commandPool = (TheForge_CmdPoolHandle) desc->commandPool;
 	fb->presentQueue = (TheForge_QueueHandle) desc->queue;
-	fb->frameBufferCount = desc->frameBufferCount;
+	fb->frameBufferCount = renderer->maxFramesAhead;
 
 	fb->renderCompleteFences = (TheForge_FenceHandle *) MEMORY_CALLOC(fb->frameBufferCount, sizeof(TheForge_FenceHandle));
 	fb->renderCompleteSemaphores =
@@ -50,12 +50,13 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 	swapChainDesc.pPresentQueues = qs;
 	swapChainDesc.width = desc->frameBufferWidth;
 	swapChainDesc.height = desc->frameBufferHeight;
-	swapChainDesc.imageCount = desc->frameBufferCount;
+	swapChainDesc.imageCount = fb->frameBufferCount;
 	swapChainDesc.sampleCount = TheForge_SC_1;
 	swapChainDesc.sampleQuality = 0;
 	swapChainDesc.colorFormat = desc->colourFormat != TinyImageFormat_UNDEFINED ?
 															desc->colourFormat : TinyImageFormat_B8G8R8A8_SRGB;
 	swapChainDesc.enableVsync = false;
+	swapChainDesc.colorClearValue = {1, 0, 0, 1};
 	TheForge_AddSwapChain(tfrenderer, &swapChainDesc, &fb->swapChain);
 
 	if (desc->depthFormat != TinyImageFormat_UNDEFINED) {
@@ -76,6 +77,9 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 		depthRTDesc.flags = TheForge_TCF_NONE;
 		TheForge_AddRenderTarget(tfrenderer, &depthRTDesc, &fb->depthBuffer);
 	}
+
+	fb->colourBufferFormat = swapChainDesc.colorFormat;
+	fb->depthBufferFormat = desc->depthFormat;
 
 	if (desc->visualDebugTarget) {
 		fb->visualDebug = RenderTF_VisualDebugCreate(fb);
@@ -153,10 +157,12 @@ AL2O3_EXTERN_C void Render_FrameBufferNewFrame(Render_FrameBufferHandle ctx) {
 
 	auto renderer = (TheForge_RendererHandle) ctx->renderer->renderer;
 
-	TheForge_AcquireNextImage(renderer, ctx->swapChain, ctx->imageAcquiredSemaphore, nullptr, &ctx->frameIndex);
+	uint32_t frameIndex;
+	TheForge_AcquireNextImage(renderer, ctx->swapChain, ctx->imageAcquiredSemaphore, nullptr, &frameIndex);
+	Render_RendererSetFrameIndex(ctx->renderer, frameIndex);
 
-	TheForge_SemaphoreHandle renderCompleteSemaphore = ctx->renderCompleteSemaphores[ctx->frameIndex];
-	TheForge_FenceHandle renderCompleteFence = ctx->renderCompleteFences[ctx->frameIndex];
+	TheForge_SemaphoreHandle renderCompleteSemaphore = ctx->renderCompleteSemaphores[frameIndex];
+	TheForge_FenceHandle renderCompleteFence = ctx->renderCompleteFences[frameIndex];
 
 	// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 	TheForge_FenceStatus fenceStatus;
@@ -165,8 +171,8 @@ AL2O3_EXTERN_C void Render_FrameBufferNewFrame(Render_FrameBufferHandle ctx) {
 		TheForge_WaitForFences(renderer, 1, &renderCompleteFence);
 	}
 
-	ctx->currentCmd = ctx->frameCmds[ctx->frameIndex];
-	ctx->currentColourTarget = TheForge_SwapChainGetRenderTarget(ctx->swapChain, ctx->frameIndex);
+	ctx->currentCmd = ctx->frameCmds[frameIndex];
+	ctx->currentColourTarget = TheForge_SwapChainGetRenderTarget(ctx->swapChain, frameIndex);
 	ctx->graphicsEncoder.cmd = ctx->currentCmd;
 	ctx->graphicsEncoder.view = Render_View{};
 
@@ -200,8 +206,9 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 		return;
 	}
 	auto renderer = (TheForge_RendererHandle) ctx->renderer->renderer;
+	auto frameIndex = ctx->renderer->frameIndex;
 
-	TheForge_RenderTargetHandle renderTarget = TheForge_SwapChainGetRenderTarget(ctx->swapChain, ctx->frameIndex);
+	TheForge_RenderTargetHandle renderTarget = TheForge_SwapChainGetRenderTarget(ctx->swapChain, frameIndex);
 
 	if (ctx->visualDebug || ctx->imguiBindings) {
 		Render_RenderTargetHandle renderTargets[2] = {renderTarget, ctx->depthBuffer};
@@ -232,17 +239,17 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 	TheForge_QueueSubmit(ctx->presentQueue,
 											 1,
 											 &ctx->currentCmd,
-											 ctx->renderCompleteFences[ctx->frameIndex],
+											 ctx->renderCompleteFences[frameIndex],
 											 1,
 											 &ctx->imageAcquiredSemaphore,
 											 1,
-											 &ctx->renderCompleteSemaphores[ctx->frameIndex]);
+											 &ctx->renderCompleteSemaphores[frameIndex]);
 
 	TheForge_QueuePresent(ctx->presentQueue,
 												ctx->swapChain,
-												ctx->frameIndex,
+												ctx->renderer->frameIndex,
 												1,
-												&ctx->renderCompleteSemaphores[ctx->frameIndex]);
+												&ctx->renderCompleteSemaphores[frameIndex]);
 
 }
 
@@ -280,23 +287,14 @@ AL2O3_EXTERN_C TinyImageFormat Render_FrameBufferColourFormat(Render_FrameBuffer
 		return TinyImageFormat_UNDEFINED;
 	}
 
-	TheForge_RenderTargetHandle renderTarget = TheForge_SwapChainGetRenderTarget(ctx->swapChain, ctx->frameIndex);
-	TheForge_RenderTargetDesc const *desc = TheForge_RenderTargetGetDesc(renderTarget);
-	ASSERT(desc);
-	return desc->format;
+	return ctx->colourBufferFormat;
 }
 
 AL2O3_EXTERN_C TinyImageFormat Render_FrameBufferDepthFormat(Render_FrameBufferHandle ctx) {
 	if (!ctx) {
 		return TinyImageFormat_UNDEFINED;
 	}
-	if (!ctx->depthBuffer) {
-		return TinyImageFormat_UNDEFINED;
-	}
-
-	TheForge_RenderTargetDesc const *desc = TheForge_RenderTargetGetDesc(ctx->depthBuffer);
-	ASSERT(desc);
-	return desc->format;
+	return ctx->depthBufferFormat;
 }
 
 AL2O3_EXTERN_C float const *Render_FrameBufferImguiScaleOffsetMatrix(Render_FrameBufferHandle frameBuffer) {

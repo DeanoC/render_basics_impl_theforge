@@ -11,7 +11,6 @@
 #define Render_Cmd TheForge_Cmd
 #define Render_ComputePipeline TheForge_Pipeline
 #define Render_DepthState TheForge_DepthState
-#define Render_DescriptorBinder TheForge_DescriptorBinder
 #define Render_GraphicsPipeline TheForge_Pipeline
 #define Render_Queue TheForge_Queue
 #define Render_RasteriserState TheForge_RasterizerState
@@ -75,6 +74,9 @@ typedef struct Render_Renderer {
 	TheForge_SamplerHandle stockSamplers[Render_SST_COUNT];
 	TheForge_VertexLayout const *stockVertexLayouts[Render_SVL_COUNT];
 
+	uint32_t maxFramesAhead;
+	uint32_t frameIndex;
+
 } Render_Renderer;
 
 typedef struct Render_FrameBuffer {
@@ -82,6 +84,8 @@ typedef struct Render_FrameBuffer {
 	TheForge_CmdPoolHandle commandPool;
 	TheForge_QueueHandle presentQueue;
 	uint32_t frameBufferCount;
+	TinyImageFormat colourBufferFormat;
+	TinyImageFormat depthBufferFormat;
 
 	TheForge_SwapChainHandle swapChain;
 	TheForge_RenderTargetHandle depthBuffer;
@@ -95,7 +99,6 @@ typedef struct Render_FrameBuffer {
 	struct RenderTF_VisualDebug *visualDebug;
 
 	// current (this frame) data
-	uint32_t frameIndex;
 	TheForge_RenderTargetHandle currentColourTarget;
 	TheForge_CmdHandle currentCmd;
 	Render_GraphicsEncoder graphicsEncoder;
@@ -108,3 +111,11 @@ typedef struct Render_ShaderObject {
 	char name[64];
 	char entryPoint[64];
 } Render_ShaderObject;
+
+typedef struct Render_DescriptorSet {
+	Render_RendererHandle renderer;
+	TheForge_DescriptorSetHandle descriptorSet;
+	TheForge_DescriptorUpdateFrequency frequency;
+	uint32_t maxSetsPerFrame;
+	uint32_t setIndexOffset;
+} Render_DescriptorSet;

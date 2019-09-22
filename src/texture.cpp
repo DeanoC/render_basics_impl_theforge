@@ -89,6 +89,7 @@ AL2O3_EXTERN_C void Render_TextureSyncUpdate(Render_TextureHandle texture, Rende
 			desc->depth,
 			desc->slices,
 			desc->mipLevels,
+			true
 	};
 
 	TheForge_TextureUpdateDesc updateDesc{

@@ -32,10 +32,9 @@ typedef struct Render_BlitEncoder {
 } Render_BlitEncoder;
 
 typedef struct Render_Buffer {
+	Render_Renderer *renderer;
 	TheForge_BufferHandle buffer;
 
-	uint32_t maxFrames;
-	uint32_t curFrame;
 	uint64_t size; // size of a single frame, total size = maxFrame * size
 } Render_Buffer;
 

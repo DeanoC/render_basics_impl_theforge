@@ -134,9 +134,6 @@ AL2O3_EXTERN_C void Render_GraphicsEncoderBindPipeline(Render_GraphicsEncoderHan
 AL2O3_EXTERN_C void Render_GraphicsEncoderBindDescriptorSet(Render_GraphicsEncoderHandle encoder,
 																														Render_DescriptorSetHandle set,
 																														uint32_t setIndex) {
-	// frame has changed and we have frequency >= frame rate adjust set index
-	uint32_t setIndexOffset = 0;
-
 	TheForge_CmdBindDescriptorSet(encoder->cmd, set->setIndexOffset + setIndex, set->descriptorSet);
 }
 

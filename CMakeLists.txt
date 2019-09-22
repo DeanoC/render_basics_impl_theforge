@@ -30,7 +30,7 @@ set(Src
 		blitencoder.cpp
 		buffer.cpp
 		computeencoder.cpp
-		desciptorset.cpp
+		descriptorset.cpp
 		framebuffer.cpp
 		graphicsencoder.cpp
 		pipeline.cpp

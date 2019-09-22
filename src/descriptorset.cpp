@@ -54,13 +54,13 @@ AL2O3_EXTERN_C void Render_DescriptorUpdate(Render_DescriptorSetHandle set,
 	for (uint32_t i = 0; i < numDescriptors; ++i) {
 		dd[i].pName = desc[i].name;
 		dd[i].count = 1;
+		dd[i].index = ~0; // use name not index currently
 		switch (desc[i].type) {
-
 			case Render_DT_TEXTURE: dd[i].pTextures = &desc[i].texture;
 				break;
 			case Render_DT_SAMPLER: dd[i].pSamplers = &desc[i].sampler;
 				break;
-			case Render_DT_BUFFER:offsets[i] = ((desc[i].buffer->curFrame) * desc[i].buffer->size) + desc[i].offset;
+			case Render_DT_BUFFER:offsets[i] = (set->renderer->frameIndex * desc[i].buffer->size) + desc[i].offset;
 				dd[i].pOffsets = &offsets[i];
 				dd[i].pSizes = &desc[i].size;
 				dd[i].pBuffers = &desc[i].buffer->buffer;

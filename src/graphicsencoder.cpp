@@ -116,13 +116,13 @@ AL2O3_EXTERN_C void Render_GraphicsEncoderBindIndexBuffer(Render_GraphicsEncoder
 	TheForge_CmdBindIndexBuffer(encoder->cmd, indexBuffer->buffer, offset);
 }
 
-AL2O3_EXTERN_C void Render_GraphicsEncoderSetScissor(Render_GraphicsEncoderHandle encoder, Math_Vec4U32_t rect) {
+AL2O3_EXTERN_C void Render_GraphicsEncoderSetScissor(Render_GraphicsEncoderHandle encoder, Math_Vec4U32 rect) {
 	TheForge_CmdSetScissor(encoder->cmd, rect.x, rect.y, rect.z, rect.w);
 }
 
 AL2O3_EXTERN_C void Render_GraphicsEncoderSetViewport(Render_GraphicsEncoderHandle encoder,
-																											Math_Vec4F_t rect,
-																											Math_Vec2F_t depth) {
+																											Math_Vec4F rect,
+																											Math_Vec2F depth) {
 	TheForge_CmdSetViewport(encoder->cmd, rect.x, rect.y, rect.z, rect.w, depth.x, depth.y);
 }
 

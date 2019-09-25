@@ -7,7 +7,7 @@
 
 namespace {
 struct Vertex {
-	Math_Vec3F_t pos;
+	Math_Vec3F pos;
 	uint32_t colour;
 };
 

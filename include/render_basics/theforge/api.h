@@ -96,6 +96,7 @@ typedef struct Render_FrameBuffer {
 	struct ImguiBindings_Context *imguiBindings;
 
 	struct RenderTF_VisualDebug *visualDebug;
+	struct Render_GpuView *debugGpuView;
 
 	// current (this frame) data
 	TheForge_RenderTargetHandle currentColourTarget;

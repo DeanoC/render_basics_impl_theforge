@@ -8,6 +8,7 @@
 #include "render_basics/api.h"
 #include "render_basics/framebuffer.h"
 #include "render_basics/graphicsencoder.h"
+#include "render_basics/view.h"
 #include "visdebug.hpp"
 
 AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
@@ -83,6 +84,7 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 
 	if (desc->visualDebugTarget) {
 		fb->visualDebug = RenderTF_VisualDebugCreate(fb);
+		fb->debugGpuView = (Render_GpuView *) MEMORY_CALLOC(1, sizeof(Render_GpuView));
 	}
 
 	if (desc->embeddedImgui) {
@@ -124,6 +126,7 @@ AL2O3_EXTERN_C void Render_FrameBufferDestroy(Render_RendererHandle handle, Rend
 	auto renderer = handle->renderer;
 
 	if (ctx->visualDebug) {
+		MEMORY_FREE(ctx->debugGpuView);
 		RenderTF_VisualDebugDestroy(ctx->visualDebug);
 	}
 
@@ -303,4 +306,19 @@ AL2O3_EXTERN_C float const *Render_FrameBufferImguiScaleOffsetMatrix(Render_Fram
 	} else {
 		return nullptr;
 	}
+}
+
+AL2O3_EXTERN_C void Render_SetFrameBufferDebugView(Render_FrameBufferHandle frameBuffer, Render_View const *view) {
+	if (!frameBuffer && !frameBuffer->debugGpuView) {
+		return;
+	}
+
+	float const f = 1.0f / tanf(view->perspectiveFOV / 2.0f);
+	frameBuffer->debugGpuView->viewToNDCMatrix = {
+			f / view->perspectiveAspectWoverH, 0.0f, 0.0f, 0.0f,
+			0.0f, f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, -1.0f,
+			0.0f, 0.0f, view->nearOffset, 0.0f
+	};
+
 }

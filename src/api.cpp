@@ -18,7 +18,7 @@ AL2O3_EXTERN_C Render_RendererHandle Render_RendererCreate(InputBasic_ContextHan
 	TheForge_RendererDesc desc{
 			TheForge_ST_5_1,
 			TheForge_GM_SINGLE,
-			TheForge_D3D_FL_12_0,
+			TheForge_D3D_FL_11_0,
 	};
 
 	renderer->renderer = TheForge_RendererCreate("TMP", &desc);

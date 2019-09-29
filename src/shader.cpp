@@ -122,6 +122,10 @@ AL2O3_EXTERN_C Render_ShaderHandle Render_ShaderCreate(Render_RendererHandle ren
 }
 
 AL2O3_EXTERN_C void Render_ShaderObjectDestroy(Render_RendererHandle renderer, Render_ShaderObjectHandle shaderObject) {
+	if(!shaderObject)
+	{
+		return;
+	}
 	MEMORY_FREE((void *) shaderObject->output.log);
 	MEMORY_FREE((void *) shaderObject->output.shader);
 	MEMORY_FREE(shaderObject);

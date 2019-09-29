@@ -16,7 +16,7 @@ AL2O3_EXTERN_C Render_RendererHandle Render_RendererCreate(InputBasic_ContextHan
 
 	// window and renderer setup
 	TheForge_RendererDesc desc{
-			TheForge_ST_5_1,
+			TheForge_ST_6_0,
 			TheForge_GM_SINGLE,
 			TheForge_D3D_FL_11_0,
 	};

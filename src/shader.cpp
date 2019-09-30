@@ -85,6 +85,7 @@ AL2O3_EXTERN_C Render_ShaderHandle Render_ShaderCreate(Render_RendererHandle ren
 		ssdesc.code = (char const*)shaderObjects[i]->output.shader;
 		ssdesc.name = shaderObjects[i]->name;
 		ssdesc.macroCount = 0; // TODO
+//		LOGINFO(ssdesc.code);
 #else
 		TheForge_BinaryShaderStageDesc ssdesc{};
 		ssdesc.entryPoint = shaderObjects[i]->entryPoint;

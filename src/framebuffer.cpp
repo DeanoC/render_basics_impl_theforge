@@ -57,7 +57,7 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 	swapChainDesc.colorFormat = desc->colourFormat != TinyImageFormat_UNDEFINED ?
 															desc->colourFormat : TinyImageFormat_B8G8R8A8_SRGB;
 	swapChainDesc.enableVsync = false;
-	swapChainDesc.colorClearValue = {1, 0, 0, 1};
+	swapChainDesc.colorClearValue = {0, 0, 0, 1};
 	TheForge_AddSwapChain(tfrenderer, &swapChainDesc, &fb->swapChain);
 
 	if (desc->depthFormat != TinyImageFormat_UNDEFINED) {
@@ -224,7 +224,7 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 	}
 
 	if (ctx->visualDebug) {
-		RenderTF_VisualDebugRender(ctx->visualDebug);
+		RenderTF_VisualDebugRender(ctx->visualDebug, &ctx->graphicsEncoder);
 	}
 
 	if (ctx->imguiBindings) {
@@ -264,6 +264,14 @@ AL2O3_EXTERN_C void Render_FrameBufferUpdate(Render_FrameBufferHandle frameBuffe
 	if (!frameBuffer || !frameBuffer->imguiBindings) {
 		return;
 	}
+
+	frameBuffer->entireViewport.x = frameBuffer->entireScissor.x = 0;
+	frameBuffer->entireViewport.y = frameBuffer->entireScissor.y = 0;
+
+	frameBuffer->entireScissor.z = (uint32_t)(width * backingScaleX);
+	frameBuffer->entireScissor.z = (uint32_t)(height * backingScaleY);
+	frameBuffer->entireViewport.w = (float)(width * backingScaleX);
+	frameBuffer->entireViewport.w = (float)(height * backingScaleY);
 
 	ImguiBindings_SetWindowSize(frameBuffer->imguiBindings,
 															width,
@@ -313,6 +321,9 @@ AL2O3_EXTERN_C void Render_SetFrameBufferDebugView(Render_FrameBufferHandle fram
 		return;
 	}
 
+	// TODO position and lookup
+	frameBuffer->debugGpuView->worldToViewMatrix = Math_IdentityMat4F();
+
 	float const f = 1.0f / tanf(view->perspectiveFOV / 2.0f);
 	frameBuffer->debugGpuView->viewToNDCMatrix = {
 			f / view->perspectiveAspectWoverH, 0.0f, 0.0f, 0.0f,
@@ -321,4 +332,13 @@ AL2O3_EXTERN_C void Render_SetFrameBufferDebugView(Render_FrameBufferHandle fram
 			0.0f, 0.0f, view->nearOffset, 0.0f
 	};
 
+	frameBuffer->debugGpuView->worldToNDCMatrix = Math_MultiplyMat4F(frameBuffer->debugGpuView->worldToViewMatrix, frameBuffer->debugGpuView->viewToNDCMatrix);
+
+}
+
+AL2O3_EXTERN_C Math_Vec4F Render_FrameBufferEntireViewport(Render_FrameBufferHandle frameBuffer) {
+	return frameBuffer->entireViewport;
+}
+AL2O3_EXTERN_C Math_Vec4U32 Render_FrameBufferEntireScissor(Render_FrameBufferHandle frameBuffer) {
+	return frameBuffer->entireScissor;
 }

@@ -15,10 +15,22 @@ struct RenderTF_VisualDebug {
 	uint32_t gpuLineIndexDataCount;
 	Render_BufferHandle gpuLineIndexData;
 
+	Render_RendererHandle renderer;
+	Render_ShaderHandle shader;
+	Render_RootSignatureHandle rootSignature;
+	Render_GraphicsPipelineHandle pipeline;
+	Render_DescriptorSetHandle descriptorSet;
+	Render_BufferHandle uniformBuffer;
+
+	union {;
+		Render_GpuView view;
+		uint8_t spacer[UNIFORM_BUFFER_MIN_SIZE];
+	} uniforms;
+
 	AL2O3_VisualDebugging_t backup;
 };
 
 RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target);
 void RenderTF_VisualDebugDestroy(RenderTF_VisualDebug *vd);
 
-void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd);
+void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd, Render_GraphicsEncoderHandle encoder);

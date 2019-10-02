@@ -93,6 +93,9 @@ typedef struct Render_FrameBuffer {
 	TheForge_SemaphoreHandle *renderCompleteSemaphores;
 	TheForge_CmdHandle *frameCmds;
 
+	Math_Vec4F entireViewport;
+	Math_Vec4U32 entireScissor;
+
 	struct ImguiBindings_Context *imguiBindings;
 
 	struct RenderTF_VisualDebug *visualDebug;
@@ -119,3 +122,5 @@ typedef struct Render_DescriptorSet {
 	uint32_t maxSetsPerFrame;
 	uint32_t setIndexOffset;
 } Render_DescriptorSet;
+
+static const int UNIFORM_BUFFER_MIN_SIZE = 256; // minimum size allowed

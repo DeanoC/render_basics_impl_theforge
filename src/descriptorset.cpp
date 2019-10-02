@@ -44,7 +44,7 @@ AL2O3_EXTERN_C void Render_DescriptorSetDestroy(Render_RendererHandle renderer,
 	MEMORY_FREE(descSet);
 }
 
-AL2O3_EXTERN_C void Render_DescriptorUpdate(Render_DescriptorSetHandle set,
+AL2O3_EXTERN_C void 	Render_DescriptorUpdate(Render_DescriptorSetHandle set,
 																						uint32_t setIndex,
 																						uint32_t numDescriptors,
 																						Render_DescriptorDesc *desc) {

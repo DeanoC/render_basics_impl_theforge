@@ -61,11 +61,28 @@ AL2O3_EXTERN_C Render_RendererHandle Render_RendererCreate(InputBasic_ContextHan
 AL2O3_EXTERN_C void Render_RendererDestroy(Render_RendererHandle renderer) {
 	if(!renderer) return;
 
+	// remove and stocks that have been allocator
+	for (auto i = 0u; i < Render_SBS_COUNT; ++i) {
+		if (renderer->stockBlendState[i] != nullptr) {
+			TheForge_RemoveBlendState(renderer->renderer, renderer->stockBlendState[i]);
+		}
+	}
+	for (auto i = 0u; i < Render_SDS_COUNT; ++i) {
+		if (renderer->stockDepthState[i] != nullptr) {
+			TheForge_RemoveDepthState(renderer->renderer, renderer->stockDepthState[i]);
+		}
+	}
+	for (auto i = 0u; i < Render_SRS_COUNT; ++i) {
+		if (renderer->stockRasterState[i] != nullptr) {
+			TheForge_RemoveRasterizerState(renderer->renderer, renderer->stockRasterState[i]);
+		}
+	}
 	for (size_t i = 0; i < Render_SST_COUNT; ++i) {
 		if (renderer->stockSamplers[i] != nullptr) {
 			TheForge_RemoveSampler(renderer->renderer, renderer->stockSamplers[i]);
 		}
 	}
+	// stock vertex layouts are static and don't need releasing
 
 	TheForge_RemoveCmdPool(renderer->renderer, renderer->blitCmdPool);
 	TheForge_RemoveQueue(renderer->blitQueue);
@@ -75,6 +92,8 @@ AL2O3_EXTERN_C void Render_RendererDestroy(Render_RendererHandle renderer) {
 	TheForge_RemoveQueue(renderer->graphicsQueue);
 
 	ShaderCompiler_Destroy(renderer->shaderCompiler);
+
+	TheForge_RemoveResourceLoaderInterface(renderer->renderer);
 	TheForge_RendererDestroy(renderer->renderer);
 
 	MEMORY_FREE(renderer);

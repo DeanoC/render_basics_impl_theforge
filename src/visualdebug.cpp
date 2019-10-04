@@ -96,6 +96,10 @@ static bool CreateShaders(RenderTF_VisualDebug *vd) {
 
 	Render_ShaderObjectDestroy(vd->renderer, shaderObjects[0]);
 	Render_ShaderObjectDestroy(vd->renderer, shaderObjects[1]);
+
+	VFile_Close(vfile);
+	VFile_Close(ffile);
+
 	return true;
 }
 

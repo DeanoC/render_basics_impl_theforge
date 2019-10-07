@@ -305,6 +305,7 @@ void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd, Render_GraphicsEncoder
 
 	Render_GraphicsEncoderBindPipeline(encoder, vd->pipeline);
 	Render_GraphicsEncoderBindDescriptorSet(encoder, vd->descriptorSet, 0);
+
 	Render_GraphicsEncoderSetScissor(encoder, Render_FrameBufferEntireScissor(vd->target));
 	Render_GraphicsEncoderSetViewport(encoder, Render_FrameBufferEntireViewport(vd->target), { 0, 1});
 

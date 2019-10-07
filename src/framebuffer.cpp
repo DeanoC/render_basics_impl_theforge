@@ -269,8 +269,8 @@ AL2O3_EXTERN_C void Render_FrameBufferUpdate(Render_FrameBufferHandle frameBuffe
 	frameBuffer->entireViewport.y = frameBuffer->entireScissor.y = 0;
 
 	frameBuffer->entireScissor.z = (uint32_t)(width * backingScaleX);
-	frameBuffer->entireScissor.z = (uint32_t)(height * backingScaleY);
-	frameBuffer->entireViewport.w = (float)(width * backingScaleX);
+	frameBuffer->entireScissor.w = (uint32_t)(height * backingScaleY);
+	frameBuffer->entireViewport.z = (float)(width * backingScaleX);
 	frameBuffer->entireViewport.w = (float)(height * backingScaleY);
 
 	ImguiBindings_SetWindowSize(frameBuffer->imguiBindings,
@@ -337,8 +337,12 @@ AL2O3_EXTERN_C void Render_SetFrameBufferDebugView(Render_FrameBufferHandle fram
 }
 
 AL2O3_EXTERN_C Math_Vec4F Render_FrameBufferEntireViewport(Render_FrameBufferHandle frameBuffer) {
+	ASSERT(frameBuffer->entireViewport.z > 0);
+	ASSERT(frameBuffer->entireViewport.w > 0);
 	return frameBuffer->entireViewport;
 }
 AL2O3_EXTERN_C Math_Vec4U32 Render_FrameBufferEntireScissor(Render_FrameBufferHandle frameBuffer) {
+	ASSERT(frameBuffer->entireScissor.z > 0);
+	ASSERT(frameBuffer->entireScissor.w > 0);
 	return frameBuffer->entireScissor;
 }

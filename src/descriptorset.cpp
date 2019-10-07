@@ -44,10 +44,11 @@ AL2O3_EXTERN_C void Render_DescriptorSetDestroy(Render_RendererHandle renderer,
 	MEMORY_FREE(descSet);
 }
 
-AL2O3_EXTERN_C void 	Render_DescriptorUpdate(Render_DescriptorSetHandle set,
-																						uint32_t setIndex,
-																						uint32_t numDescriptors,
-																						Render_DescriptorDesc *desc) {
+static void descriptorUpdate(Render_DescriptorSetHandle set,
+																						 uint32_t setIndex,
+																						 uint32_t numDescriptors,
+																						 Render_DescriptorDesc *desc,
+																						 uint32_t frameIndex ) {
 	auto dd = (TheForge_DescriptorData *) STACK_ALLOC(sizeof(TheForge_DescriptorData) * numDescriptors);
 	auto *offsets = (uint64_t *) STACK_ALLOC(sizeof(uint64_t) * numDescriptors);
 
@@ -60,7 +61,7 @@ AL2O3_EXTERN_C void 	Render_DescriptorUpdate(Render_DescriptorSetHandle set,
 				break;
 			case Render_DT_SAMPLER: dd[i].pSamplers = &desc[i].sampler;
 				break;
-			case Render_DT_BUFFER:offsets[i] = (set->renderer->frameIndex * desc[i].buffer->size) + desc[i].offset;
+			case Render_DT_BUFFER:offsets[i] = (frameIndex * desc[i].buffer->size) + desc[i].offset;
 				dd[i].pOffsets = &offsets[i];
 				dd[i].pSizes = &desc[i].size;
 				dd[i].pBuffers = &desc[i].buffer->buffer;
@@ -72,7 +73,7 @@ AL2O3_EXTERN_C void 	Render_DescriptorUpdate(Render_DescriptorSetHandle set,
 
 	// frame has changed and we have frequency >= frame rate adjust set index
 	if (set->frequency != TheForge_DESCRIPTOR_UPDATE_FREQ_NONE) {
-		set->setIndexOffset = set->renderer->frameIndex * set->maxSetsPerFrame;
+		set->setIndexOffset = frameIndex * set->maxSetsPerFrame;
 	}
 
 	TheForge_UpdateDescriptorSet(set->renderer->renderer,
@@ -82,3 +83,20 @@ AL2O3_EXTERN_C void 	Render_DescriptorUpdate(Render_DescriptorSetHandle set,
 															 dd);
 }
 
+AL2O3_EXTERN_C void 	Render_DescriptorUpdate(Render_DescriptorSetHandle set,
+																						uint32_t setIndex,
+																						uint32_t numDescriptors,
+																						Render_DescriptorDesc *desc) {
+	descriptorUpdate(set, setIndex, numDescriptors, desc, set->renderer->frameIndex);
+}
+
+// optimization that prefiles all the per frame buffers
+AL2O3_EXTERN_C void 	Render_DescriptorPresetFrequencyUpdated(Render_DescriptorSetHandle set,
+																						 uint32_t setIndex,
+																						 uint32_t numDescriptors,
+																						 Render_DescriptorDesc *desc) {
+	for(uint32_t i = 0;i < set->maxSetsPerFrame;++i) {
+		descriptorUpdate(set, setIndex, numDescriptors, desc, i);
+	}
+
+}

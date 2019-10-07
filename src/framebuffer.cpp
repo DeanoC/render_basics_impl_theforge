@@ -268,10 +268,10 @@ AL2O3_EXTERN_C void Render_FrameBufferUpdate(Render_FrameBufferHandle frameBuffe
 	frameBuffer->entireViewport.x = frameBuffer->entireScissor.x = 0;
 	frameBuffer->entireViewport.y = frameBuffer->entireScissor.y = 0;
 
-	frameBuffer->entireScissor.z = (uint32_t)(width * backingScaleX);
-	frameBuffer->entireScissor.w = (uint32_t)(height * backingScaleY);
-	frameBuffer->entireViewport.z = (float)(width * backingScaleX);
-	frameBuffer->entireViewport.w = (float)(height * backingScaleY);
+	frameBuffer->entireScissor.z = (uint32_t) (width * backingScaleX);
+	frameBuffer->entireScissor.w = (uint32_t) (height * backingScaleY);
+	frameBuffer->entireViewport.z = (float) (width * backingScaleX);
+	frameBuffer->entireViewport.w = (float) (height * backingScaleY);
 
 	ImguiBindings_SetWindowSize(frameBuffer->imguiBindings,
 															width,
@@ -321,14 +321,13 @@ AL2O3_EXTERN_C void Render_SetFrameBufferDebugView(Render_FrameBufferHandle fram
 		return;
 	}
 
-	// TODO position and lookup
-	frameBuffer->debugGpuView->worldToViewMatrix = Math_IdentityMat4F();
+	frameBuffer->debugGpuView->worldToViewMatrix =	Math_LookAtMat4F(view->position, view->lookAt, view->upVector);
 
 	float const f = 1.0f / tanf(view->perspectiveFOV / 2.0f);
 	frameBuffer->debugGpuView->viewToNDCMatrix = {
 			f / view->perspectiveAspectWoverH, 0.0f, 0.0f, 0.0f,
 			0.0f, f, 0.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, -1.0f,
+			0.0f, 0.0f, 0.0f, 1.0f,
 			0.0f, 0.0f, view->nearOffset, 0.0f
 	};
 

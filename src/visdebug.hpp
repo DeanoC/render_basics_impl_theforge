@@ -9,16 +9,22 @@ struct RenderTF_VisualDebug {
 
 	CADT_VectorHandle vertexData;
 	CADT_VectorHandle lineIndexData;
+	CADT_VectorHandle solidTriIndexData;
 
 	uint32_t gpuVertexDataCount;
 	Render_BufferHandle gpuVertexData;
 	uint32_t gpuLineIndexDataCount;
 	Render_BufferHandle gpuLineIndexData;
+	uint32_t gpuSolidTriIndexDataCount;
+	Render_BufferHandle gpuSolidTriIndexData;
 
 	Render_RendererHandle renderer;
 	Render_ShaderHandle shader;
 	Render_RootSignatureHandle rootSignature;
-	Render_GraphicsPipelineHandle pipeline;
+
+	Render_GraphicsPipelineHandle linePipeline;
+	Render_GraphicsPipelineHandle solidTriPipeline;
+
 	Render_DescriptorSetHandle descriptorSet;
 	Render_BufferHandle uniformBuffer;
 

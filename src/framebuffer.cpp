@@ -188,9 +188,21 @@ AL2O3_EXTERN_C void Render_FrameBufferNewFrame(Render_FrameBufferHandle ctx) {
 	};
 	Render_TextureTransitionType textureTransitions[] = {
 			Render_TTT_RENDER_TARGET,
-			(Render_TextureTransitionType) (Render_TTT_DEPTH_READ | Render_TTT_DEPTH_WRITE)};
+			Render_TTT_DEPTH_WRITE};
 	Render_GraphicsEncoderTransition(&ctx->graphicsEncoder, 0, nullptr, nullptr,
 																	 ctx->depthBuffer ? 2 : 1, textures, textureTransitions);
+
+	if (ctx->visualDebug || ctx->imguiBindings) {
+		Render_RenderTargetHandle renderTargets[2] = {ctx->currentColourTarget, ctx->depthBuffer};
+		// ensure the buffer is cleared if we used visual debug or imgui bindings
+		Render_GraphicsEncoderBindRenderTargets(&ctx->graphicsEncoder,
+																						renderTargets[1] ? 2 : 1,
+																						renderTargets,
+																						true,
+																						true,
+																						true);
+	}
+
 }
 
 AL2O3_EXTERN_C ImguiBindings_ContextHandle Render_FrameBufferCreateImguiBindings(
@@ -211,14 +223,12 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 	auto renderer = (TheForge_RendererHandle) ctx->renderer->renderer;
 	auto frameIndex = ctx->renderer->frameIndex;
 
-	TheForge_RenderTargetHandle renderTarget = TheForge_SwapChainGetRenderTarget(ctx->swapChain, frameIndex);
-
 	if (ctx->visualDebug || ctx->imguiBindings) {
-		Render_RenderTargetHandle renderTargets[2] = {renderTarget, ctx->depthBuffer};
+		Render_RenderTargetHandle renderTargets[2] = {ctx->currentColourTarget, ctx->depthBuffer};
 		Render_GraphicsEncoderBindRenderTargets(&ctx->graphicsEncoder,
 																						renderTargets[1] ? 2 : 1,
 																						renderTargets,
-																						true,
+																						false,
 																						true,
 																						true);
 	}
@@ -233,7 +243,7 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 
 	Render_GraphicsEncoderBindRenderTargets(&ctx->graphicsEncoder, 0, nullptr, false, false, false);
 
-	Render_TextureHandle textures[] = {TheForge_RenderTargetGetTexture(renderTarget)};
+	Render_TextureHandle textures[] = {TheForge_RenderTargetGetTexture(ctx->currentColourTarget)};
 	Render_TextureTransitionType textureTransitions[] = {Render_TTT_PRESENT};
 	Render_GraphicsEncoderTransition(&ctx->graphicsEncoder, 0, nullptr, nullptr, 1, textures, textureTransitions);
 
@@ -265,8 +275,10 @@ AL2O3_EXTERN_C void Render_FrameBufferUpdate(Render_FrameBufferHandle frameBuffe
 		return;
 	}
 
-	frameBuffer->entireViewport.x = frameBuffer->entireScissor.x = 0;
-	frameBuffer->entireViewport.y = frameBuffer->entireScissor.y = 0;
+	frameBuffer->entireViewport.x = 0.0f;
+	frameBuffer->entireScissor.x = 0;
+	frameBuffer->entireViewport.y = 0.0f;
+	frameBuffer->entireScissor.y = 0;
 
 	frameBuffer->entireScissor.z = (uint32_t) (width * backingScaleX);
 	frameBuffer->entireScissor.w = (uint32_t) (height * backingScaleY);

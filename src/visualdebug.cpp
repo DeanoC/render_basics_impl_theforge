@@ -259,10 +259,27 @@ void Tetrahedron(float const* pos, float const* eulerRots, float const* scale, u
 	}
 	auto ps = currentTarget->platonicSolids;
 	Math_Mat4F translateMatrix = Math_TranslationMat4F(*(Math_Vec3F*)pos);
+	Math_Mat4F rotateMatrix = Math_RotateEulerXYZMat4F(*(Math_Vec3F*)eulerRots);
 	Math_Mat4F scaleMatrix = Math_ScaleMat4F(*(Math_Vec3F*)scale);
 
-	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, scaleMatrix);
+	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, rotateMatrix);
+	matrix = Math_MultiplyMat4F(matrix, scaleMatrix);
 	RenderTF_PlatonicSolidsAddTetrahedron(currentTarget, matrix);
+}
+
+void Cube(float const* pos, float const* eulerRots, float const* scale, uint32_t colour) {
+	if (currentTarget == nullptr) {
+		LOGERROR("RenderTF_VisualDebug Line callback still hooked up after destruction!");
+		return;
+	}
+	auto ps = currentTarget->platonicSolids;
+	Math_Mat4F translateMatrix = Math_TranslationMat4F(*(Math_Vec3F*)pos);
+	Math_Mat4F rotateMatrix = Math_RotateEulerXYZMat4F(*(Math_Vec3F*)eulerRots);
+	Math_Mat4F scaleMatrix = Math_ScaleMat4F(*(Math_Vec3F*)scale);
+
+	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, rotateMatrix);
+	matrix = Math_MultiplyMat4F(matrix, scaleMatrix);
+	RenderTF_PlatonicSolidsAddCube(currentTarget, matrix);
 }
 
 } // end anon namespace
@@ -362,7 +379,10 @@ RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target
 	params[0].size = sizeof(vd->uniforms);
 	Render_DescriptorPresetFrequencyUpdated(vd->descriptorSet, 0, 1, params);
 
-	RenderTF_PlatonicSolidsCreate(vd);
+	if(!RenderTF_PlatonicSolidsCreate(vd)){
+		LOGERROR("RenderTF_PlatonicSolidsCreate failed");
+		return nullptr;
+	}
 
 
 	currentTarget = vd;
@@ -375,6 +395,7 @@ RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target
 	AL2O3_VisualDebugging.SolidQuads = SolidQuads;
 
 	AL2O3_VisualDebugging.Tetrahedron = Tetrahedron;
+	AL2O3_VisualDebugging.Cube = Cube;
 
 	return vd;
 }

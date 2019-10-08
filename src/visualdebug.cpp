@@ -258,7 +258,10 @@ void Tetrahedron(float const* pos, float const* eulerRots, float const* scale, u
 		return;
 	}
 	auto ps = currentTarget->platonicSolids;
-	Math_Mat4F matrix = Math_IdentityMat4F();
+	Math_Mat4F translateMatrix = Math_TranslationMat4F(*(Math_Vec3F*)pos);
+	Math_Mat4F scaleMatrix = Math_ScaleMat4F(*(Math_Vec3F*)scale);
+
+	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, scaleMatrix);
 	RenderTF_PlatonicSolidsAddTetrahedron(currentTarget, matrix);
 }
 

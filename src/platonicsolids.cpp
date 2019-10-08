@@ -42,7 +42,7 @@ static Render_ShaderHandle CreateShaders(RenderTF_VisualDebug *vd) {
 																					"struct VSInput\n"
 																					"{\n"
 																					"\tfloat4 Position : POSITION;\n"
-																					"\tfloat3 normal   : NORMAL;\n"
+																					"\tfloat3 Normal   : NORMAL;\n"
 																					"\tfloat4 Colour   : COLOR;\n"
 																					"};\n"
 																					"\n"
@@ -63,15 +63,15 @@ static Render_ShaderHandle CreateShaders(RenderTF_VisualDebug *vd) {
 																					"    VSOutput result;\n"
 																					"\n"
 																				 "\tfloat4x4 localToWorldMatrix;\n"
-																					"\tlocalToWorldMatrix[0] = float4(1,0,0,0);\n//instance.localToWorldMatrixRow0;\n"
-																					"\tlocalToWorldMatrix[1] = float4(0,1,0,0);\n//instance.localToWorldMatrixRow1;\n"
-																					"\tlocalToWorldMatrix[2] = float4(0,0,1,0);\n//instance.localToWorldMatrixRow2;\n"
-																					"\tlocalToWorldMatrix[2] = float4(0,0,0,1);\n"
+																					"\tlocalToWorldMatrix[0] = instance.localToWorldMatrixRow0;\n"
+																					"\tlocalToWorldMatrix[1] = instance.localToWorldMatrixRow1;\n"
+																					"\tlocalToWorldMatrix[2] = instance.localToWorldMatrixRow2;\n"
+																					"\tlocalToWorldMatrix[3] = float4(0,0,0,1);\n"
 																					"\tfloat4 pos = mul(localToWorldMatrix, input.Position);\n"
 																					"\tresult.Position = mul(worldToNDCMatrix, pos);\n"
-																					"\tresult.Colour = float4(1,0,0,1);\n//input.Colour;\n"
+																					"\tresult.Colour = float4(input.Normal,1);\n//input.Colour;\n"
 																					"\treturn result;\n"
-																					"}";
+																					"}\n";
 
 	static char const *const FragmentShader = "struct FSInput {\n"
 																						"\tfloat4 Position : SV_POSITION;\n"
@@ -160,15 +160,15 @@ bool RenderTF_PlatonicSolidsCreate(RenderTF_VisualDebug *vd) {
 		return false;
 	}
 	static Render_VertexLayout vertexLayout{
-			3,
+			6,
 			{
 					{TheForge_SS_POSITION, 8, "POSITION", TinyImageFormat_R32G32B32_SFLOAT, 0, 0, 0, TheForge_VAR_VERTEX},
 					{TheForge_SS_NORMAL, 9, "NORMAL", TinyImageFormat_R32G32B32_SFLOAT, 0, 1, sizeof(float) * 3, TheForge_VAR_VERTEX},
 					{TheForge_SS_COLOR, 5, "COLOR", TinyImageFormat_R8G8B8A8_UNORM, 0, 2, sizeof(float) * 6, TheForge_VAR_VERTEX},
 
-					{TheForge_SS_TEXCOORD0, 12, "INSTANCEROW0", TinyImageFormat_R32G32B32A32_SFLOAT, 1, 0, 0, TheForge_VAR_INSTANCE },
-					{TheForge_SS_TEXCOORD0, 12, "INSTANCEROW1", TinyImageFormat_R32G32B32A32_SFLOAT, 1, 1, sizeof(float)*4, TheForge_VAR_INSTANCE },
-					{TheForge_SS_TEXCOORD0, 12, "INSTANCEROW2", TinyImageFormat_R32G32B32A32_SFLOAT, 1, 2, sizeof(float)*4, TheForge_VAR_INSTANCE }
+					{TheForge_SS_TEXCOORD0, 12, "INSTANCEROW", TinyImageFormat_R32G32B32A32_SFLOAT, 1, 0, 0, TheForge_VAR_INSTANCE },
+					{TheForge_SS_TEXCOORD1, 12, "INSTANCEROW", TinyImageFormat_R32G32B32A32_SFLOAT, 1, 1, sizeof(float)*4, TheForge_VAR_INSTANCE },
+					{TheForge_SS_TEXCOORD2, 12, "INSTANCEROW", TinyImageFormat_R32G32B32A32_SFLOAT, 1, 2, sizeof(float)*4, TheForge_VAR_INSTANCE }
 			}
 	};
 	TinyImageFormat colourFormats[] = {Render_FrameBufferColourFormat(vd->target)};
@@ -216,7 +216,7 @@ bool RenderTF_PlatonicSolidsCreate(RenderTF_VisualDebug *vd) {
 	Render_BufferUpdateDesc vertexUpdate = {
 			CADT_VectorData(vertices),
 			0,
-			sizeof(Vertex)
+			sizeof(Vertex) * CADT_VectorSize(vertices)
 	};
 	Render_BufferUpload(ps->gpuVertexData, &vertexUpdate);
 

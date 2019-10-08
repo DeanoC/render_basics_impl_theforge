@@ -115,5 +115,5 @@ AL2O3_EXTERN_C void Render_BufferUpload(Render_BufferHandle buffer, Render_Buffe
 			update->size
 	};
 
-	TheForge_UpdateBuffer(&tfUpdate, true);
+	TheForge_UpdateBuffer(&tfUpdate, false);
 }

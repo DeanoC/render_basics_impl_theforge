@@ -139,3 +139,39 @@ AL2O3_EXTERN_C void Render_ShaderDestroy(Render_RendererHandle renderer, Render_
 
 	TheForge_RemoveShader(renderer->renderer, shader);
 }
+
+// helper for the standard vertex + fragment shader from VFile
+AL2O3_EXTERN_C  Render_ShaderHandle Render_CreateShaderFromVFile(Render_RendererHandle renderer,
+		VFile_Handle vertexFile,
+		char const * vertexEntryPoint,
+		VFile_Handle fragmentFile,
+		char const * fragmentEntryPoint ) {
+
+	Render_ShaderObjectDesc vsod = {
+			Render_ST_VERTEXSHADER,
+			vertexFile,
+			vertexEntryPoint
+	};
+	Render_ShaderObjectDesc fsod = {
+			Render_ST_FRAGMENTSHADER,
+			fragmentFile,
+			fragmentEntryPoint
+	};
+
+	Render_ShaderObjectHandle shaderObjects[2]{};
+	shaderObjects[0] = Render_ShaderObjectCreate(renderer, &vsod);
+	shaderObjects[1] = Render_ShaderObjectCreate(renderer, &fsod);
+
+	if (!shaderObjects[0] || !shaderObjects[1]) {
+		Render_ShaderObjectDestroy(renderer, shaderObjects[0]);
+		Render_ShaderObjectDestroy(renderer, shaderObjects[1]);
+		return nullptr;
+	}
+
+	Render_ShaderHandle shader =  Render_ShaderCreate(renderer, 2, shaderObjects);
+
+	Render_ShaderObjectDestroy(renderer, shaderObjects[0]);
+	Render_ShaderObjectDestroy(renderer, shaderObjects[1]);
+
+	return shader;
+}

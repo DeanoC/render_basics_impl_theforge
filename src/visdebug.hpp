@@ -4,6 +4,8 @@
 #include "render_basics/theforge/api.h"
 #include "al2o3_cadt/vector.h"
 
+struct RenderTF_PlatonicSolids;
+
 struct RenderTF_VisualDebug {
 	Render_FrameBufferHandle target;
 
@@ -18,6 +20,8 @@ struct RenderTF_VisualDebug {
 	uint32_t gpuSolidTriIndexDataCount;
 	Render_BufferHandle gpuSolidTriIndexData;
 
+	RenderTF_PlatonicSolids* platonicSolids;
+
 	Render_RendererHandle renderer;
 	Render_ShaderHandle shader;
 	Render_RootSignatureHandle rootSignature;
@@ -28,7 +32,7 @@ struct RenderTF_VisualDebug {
 	Render_DescriptorSetHandle descriptorSet;
 	Render_BufferHandle uniformBuffer;
 
-	union {;
+	union {
 		Render_GpuView view;
 		uint8_t spacer[UNIFORM_BUFFER_MIN_SIZE];
 	} uniforms;
@@ -40,3 +44,8 @@ RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target
 void RenderTF_VisualDebugDestroy(RenderTF_VisualDebug *vd);
 
 void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd, Render_GraphicsEncoderHandle encoder);
+
+bool RenderTF_PlatonicSolidsCreate(RenderTF_VisualDebug* vd);
+void RenderTF_PlatonicSolidsDestroy(RenderTF_VisualDebug* vd);
+void RenderTF_PlatonicSolidsRender(RenderTF_VisualDebug *vd, Render_GraphicsEncoderHandle encoder);
+void RenderTF_PlatonicSolidsAddTetrahedron(RenderTF_VisualDebug* vd, Math_Mat4F transform);

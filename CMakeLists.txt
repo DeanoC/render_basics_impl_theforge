@@ -39,6 +39,7 @@ set(Src
 		view.cpp
 		visualdebug.cpp
 		visdebug.hpp
+		platonicsolids.cpp
 		)
 
 set(Deps

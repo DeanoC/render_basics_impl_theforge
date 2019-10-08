@@ -68,37 +68,12 @@ static bool CreateShaders(RenderTF_VisualDebug *vd) {
 		VFile_Close(vfile);
 		return false;
 	}
-
-	Render_ShaderObjectDesc vsod = {
-			Render_ST_VERTEXSHADER,
-			vfile,
-			vertEntryPoint
-	};
-	Render_ShaderObjectDesc fsod = {
-			Render_ST_FRAGMENTSHADER,
-			ffile,
-			fragEntryPoint
-	};
-
-	Render_ShaderObjectHandle shaderObjects[2]{};
-	shaderObjects[0] = Render_ShaderObjectCreate(vd->renderer, &vsod);
-	shaderObjects[1] = Render_ShaderObjectCreate(vd->renderer, &fsod);
-
-	if (!shaderObjects[0] || !shaderObjects[1]) {
-		Render_ShaderObjectDestroy(vd->renderer, shaderObjects[0]);
-		Render_ShaderObjectDestroy(vd->renderer, shaderObjects[1]);
-		return false;
-	}
-
-	vd->shader = Render_ShaderCreate(vd->renderer, 2, shaderObjects);
-
-	Render_ShaderObjectDestroy(vd->renderer, shaderObjects[0]);
-	Render_ShaderObjectDestroy(vd->renderer, shaderObjects[1]);
+	vd->shader = Render_CreateShaderFromVFile(vd->renderer, vfile, "VS_main", ffile,"FS_main");
 
 	VFile_Close(vfile);
 	VFile_Close(ffile);
 
-	return true;
+	return vd->shader != nullptr;
 }
 
 uint32_t PickVisibleColour(uint32_t primitiveId) {
@@ -277,6 +252,16 @@ void SolidQuads(uint32_t quadCount, float const * verts, uint32_t colour) {
 	}
 }
 
+void Tetrahedron(float const* pos, float const* eulerRots, float const* scale, uint32_t colour) {
+	if (currentTarget == nullptr) {
+		LOGERROR("RenderTF_VisualDebug Line callback still hooked up after destruction!");
+		return;
+	}
+	auto ps = currentTarget->platonicSolids;
+	Math_Mat4F matrix = Math_IdentityMat4F();
+	RenderTF_PlatonicSolidsAddTetrahedron(currentTarget, matrix);
+}
+
 } // end anon namespace
 
 RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target) {
@@ -346,7 +331,6 @@ RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target
 		return nullptr;
 	}
 
-
 	Render_DescriptorSetDesc const setDesc = {
 			vd->rootSignature,
 			Render_DUF_PER_FRAME,
@@ -374,8 +358,11 @@ RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target
 	params[0].offset = 0;
 	params[0].size = sizeof(vd->uniforms);
 	Render_DescriptorPresetFrequencyUpdated(vd->descriptorSet, 0, 1, params);
-	currentTarget = vd;
 
+	RenderTF_PlatonicSolidsCreate(vd);
+
+
+	currentTarget = vd;
 	vd->backup = AL2O3_VisualDebugging;
 	AL2O3_VisualDebugging.Line = Line;
 	AL2O3_VisualDebugging.Lines = Lines;
@@ -384,10 +371,14 @@ RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target
 	AL2O3_VisualDebugging.SolidTris = SolidTris;
 	AL2O3_VisualDebugging.SolidQuads = SolidQuads;
 
+	AL2O3_VisualDebugging.Tetrahedron = Tetrahedron;
+
 	return vd;
 }
 
 void RenderTF_VisualDebugDestroy(RenderTF_VisualDebug *vd) {
+	RenderTF_PlatonicSolidsDestroy(vd);
+
 	if (vd->uniformBuffer) {
 		Render_BufferDestroy(vd->renderer, vd->uniformBuffer);
 	}
@@ -436,10 +427,6 @@ void RenderTF_VisualDebugDestroy(RenderTF_VisualDebug *vd) {
 }
 
 void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd, Render_GraphicsEncoderHandle encoder) {
-	if (CADT_VectorSize(vd->vertexData) == 0) {
-		return;
-	}
-
 	// upload the uniforms
 	memcpy(&vd->uniforms, vd->target->debugGpuView, sizeof(Render_GpuView));
 	Render_BufferUpdateDesc uniformUpdate = {
@@ -448,6 +435,13 @@ void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd, Render_GraphicsEncoder
 			sizeof(vd->uniforms)
 	};
 	Render_BufferUpload(vd->uniformBuffer, &uniformUpdate);
+
+	RenderTF_PlatonicSolidsRender(vd, encoder);
+
+	if (CADT_VectorSize(vd->vertexData) == 0) {
+		return;
+	}
+
 
 	// grow the vertex buffer if required
 	if (CADT_VectorSize(vd->vertexData) > vd->gpuVertexDataCount) {

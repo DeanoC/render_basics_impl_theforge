@@ -173,7 +173,7 @@ void SolidTris(uint32_t triCount, float const * verts, uint32_t colour) {
 		return;
 	}
 
-	uint32_t const primId = CADT_VectorSize(currentTarget->solidTriIndexData)/3;
+	uint32_t const primId = (uint32_t)CADT_VectorSize(currentTarget->solidTriIndexData)/3;
 	for (auto i = 0u; i < triCount; ++i) {
 		uint32_t col = colour;
 		if(colour == 0) {
@@ -210,7 +210,7 @@ void SolidQuads(uint32_t quadCount, float const * verts, uint32_t colour) {
 		LOGERROR("RenderTF_VisualDebug Line callback still hooked up after destruction!");
 		return;
 	}
-	uint32_t const primId = CADT_VectorSize(currentTarget->solidTriIndexData)/3;
+	uint32_t const primId = (uint32_t)CADT_VectorSize(currentTarget->solidTriIndexData)/3;
 
 	for (auto i = 0u; i < quadCount; ++i) {
 		uint32_t col = colour;
@@ -280,6 +280,51 @@ void Cube(float const* pos, float const* eulerRots, float const* scale, uint32_t
 	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, rotateMatrix);
 	matrix = Math_MultiplyMat4F(matrix, scaleMatrix);
 	RenderTF_PlatonicSolidsAddCube(currentTarget, matrix);
+}
+
+void Octahedron(float const* pos, float const* eulerRots, float const* scale, uint32_t colour) {
+	if (currentTarget == nullptr) {
+		LOGERROR("RenderTF_VisualDebug Line callback still hooked up after destruction!");
+		return;
+	}
+	auto ps = currentTarget->platonicSolids;
+	Math_Mat4F translateMatrix = Math_TranslationMat4F(*(Math_Vec3F*)pos);
+	Math_Mat4F rotateMatrix = Math_RotateEulerXYZMat4F(*(Math_Vec3F*)eulerRots);
+	Math_Mat4F scaleMatrix = Math_ScaleMat4F(*(Math_Vec3F*)scale);
+
+	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, rotateMatrix);
+	matrix = Math_MultiplyMat4F(matrix, scaleMatrix);
+	RenderTF_PlatonicSolidsAddOctahedron(currentTarget, matrix);
+}
+
+void Icosahedron(float const* pos, float const* eulerRots, float const* scale, uint32_t colour) {
+	if (currentTarget == nullptr) {
+		LOGERROR("RenderTF_VisualDebug Line callback still hooked up after destruction!");
+		return;
+	}
+	auto ps = currentTarget->platonicSolids;
+	Math_Mat4F translateMatrix = Math_TranslationMat4F(*(Math_Vec3F*)pos);
+	Math_Mat4F rotateMatrix = Math_RotateEulerXYZMat4F(*(Math_Vec3F*)eulerRots);
+	Math_Mat4F scaleMatrix = Math_ScaleMat4F(*(Math_Vec3F*)scale);
+
+	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, rotateMatrix);
+	matrix = Math_MultiplyMat4F(matrix, scaleMatrix);
+	RenderTF_PlatonicSolidsAddIcosahedron(currentTarget, matrix);
+}
+
+void Dodecahedron(float const* pos, float const* eulerRots, float const* scale, uint32_t colour) {
+	if (currentTarget == nullptr) {
+		LOGERROR("RenderTF_VisualDebug Line callback still hooked up after destruction!");
+		return;
+	}
+	auto ps = currentTarget->platonicSolids;
+	Math_Mat4F translateMatrix = Math_TranslationMat4F(*(Math_Vec3F*)pos);
+	Math_Mat4F rotateMatrix = Math_RotateEulerXYZMat4F(*(Math_Vec3F*)eulerRots);
+	Math_Mat4F scaleMatrix = Math_ScaleMat4F(*(Math_Vec3F*)scale);
+
+	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, rotateMatrix);
+	matrix = Math_MultiplyMat4F(matrix, scaleMatrix);
+	RenderTF_PlatonicSolidsAddDodecahedron(currentTarget, matrix);
 }
 
 } // end anon namespace
@@ -396,6 +441,9 @@ RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target
 
 	AL2O3_VisualDebugging.Tetrahedron = Tetrahedron;
 	AL2O3_VisualDebugging.Cube = Cube;
+	AL2O3_VisualDebugging.Octahedron = Octahedron;
+	AL2O3_VisualDebugging.Icosahedron = Icosahedron;
+	AL2O3_VisualDebugging.Dodecahedron = Dodecahedron;
 
 	return vd;
 }
@@ -547,14 +595,14 @@ void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd, Render_GraphicsEncoder
 	if (vd->gpuSolidTriIndexDataCount) {
 		Render_GraphicsEncoderBindPipeline(encoder, vd->solidTriPipeline);
 		Render_GraphicsEncoderBindIndexBuffer(encoder, vd->gpuSolidTriIndexData, 0);
-		Render_GraphicsEncoderDrawIndexed(encoder, CADT_VectorSize(vd->solidTriIndexData), 0, 0);
+		Render_GraphicsEncoderDrawIndexed(encoder, (uint32_t)CADT_VectorSize(vd->solidTriIndexData), 0, 0);
 		CADT_VectorResize(vd->solidTriIndexData, 0);
 	}
 
 	if(vd->gpuLineIndexDataCount > 0) {
 		Render_GraphicsEncoderBindPipeline(encoder, vd->linePipeline);
 		Render_GraphicsEncoderBindIndexBuffer(encoder, vd->gpuLineIndexData, 0);
-		Render_GraphicsEncoderDrawIndexed(encoder, CADT_VectorSize(vd->lineIndexData), 0, 0);
+		Render_GraphicsEncoderDrawIndexed(encoder, (uint32_t)CADT_VectorSize(vd->lineIndexData), 0, 0);
 		CADT_VectorResize(vd->lineIndexData, 0);
 	}
 

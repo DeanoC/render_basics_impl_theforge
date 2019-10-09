@@ -50,3 +50,6 @@ void RenderTF_PlatonicSolidsDestroy(RenderTF_VisualDebug* vd);
 void RenderTF_PlatonicSolidsRender(RenderTF_VisualDebug *vd, Render_GraphicsEncoderHandle encoder);
 void RenderTF_PlatonicSolidsAddTetrahedron(RenderTF_VisualDebug* vd, Math_Mat4F transform);
 void RenderTF_PlatonicSolidsAddCube(RenderTF_VisualDebug* vd, Math_Mat4F transform);
+void RenderTF_PlatonicSolidsAddOctahedron(RenderTF_VisualDebug* vd, Math_Mat4F transform);
+void RenderTF_PlatonicSolidsAddIcosahedron(RenderTF_VisualDebug* vd, Math_Mat4F transform);
+void RenderTF_PlatonicSolidsAddDodecahedron(RenderTF_VisualDebug* vd, Math_Mat4F transform);

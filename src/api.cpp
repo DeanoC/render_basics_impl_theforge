@@ -151,3 +151,9 @@ AL2O3_EXTERN_C void Render_RendererSetFrameIndex(Render_RendererHandle renderer,
 AL2O3_EXTERN_C uint32_t Render_RendererGetFrameIndex(Render_RendererHandle renderer) {
 	return renderer->frameIndex;
 }
+AL2O3_EXTERN_C void Render_RendererStartGpuCapture(Render_RendererHandle renderer, char const* filename) {
+	TheForge_CaptureTraceStart(renderer->renderer, filename);
+}
+AL2O3_EXTERN_C void Render_RendererEndGpuCapture(Render_RendererHandle renderer) {
+	TheForge_CaptureTraceEnd(renderer->renderer);
+}

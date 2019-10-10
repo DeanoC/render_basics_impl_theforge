@@ -107,9 +107,7 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 		if (fb->imguiBindings) {
 			ImguiBindings_SetWindowSize(fb->imguiBindings,
 																	desc->frameBufferWidth,
-																	desc->frameBufferHeight,
-																	1.0f,
-																	1.0f);
+																	desc->frameBufferHeight);
 		}
 	}
 	return fb;
@@ -269,7 +267,6 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 AL2O3_EXTERN_C void Render_FrameBufferUpdate(Render_FrameBufferHandle frameBuffer,
 																						 uint32_t width,
 																						 uint32_t height,
-																						 float backingScaleX, float backingScaleY,
 																						 double deltaMS) {
 	if (!frameBuffer || !frameBuffer->imguiBindings) {
 		return;
@@ -280,16 +277,14 @@ AL2O3_EXTERN_C void Render_FrameBufferUpdate(Render_FrameBufferHandle frameBuffe
 	frameBuffer->entireViewport.y = 0.0f;
 	frameBuffer->entireScissor.y = 0;
 
-	frameBuffer->entireScissor.z = (uint32_t) (width * backingScaleX);
-	frameBuffer->entireScissor.w = (uint32_t) (height * backingScaleY);
-	frameBuffer->entireViewport.z = (float) (width * backingScaleX);
-	frameBuffer->entireViewport.w = (float) (height * backingScaleY);
+	frameBuffer->entireScissor.z = width;
+	frameBuffer->entireScissor.w = height;
+	frameBuffer->entireViewport.z = (float) width;
+	frameBuffer->entireViewport.w = (float) height;
 
 	ImguiBindings_SetWindowSize(frameBuffer->imguiBindings,
 															width,
-															height,
-															backingScaleX,
-															backingScaleY);
+															height);
 
 	ImguiBindings_UpdateInput(frameBuffer->imguiBindings, deltaMS);
 }

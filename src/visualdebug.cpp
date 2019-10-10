@@ -2,6 +2,7 @@
 #include "al2o3_platform/platform.h"
 #include "al2o3_memory/memory.h"
 #include "al2o3_platform/visualdebug.h"
+#include "al2o3_os/thread.hpp"
 #include "render_basics/theforge/api.h"
 #include "render_basics/buffer.h"
 #include "render_basics/descriptorset.h"
@@ -108,6 +109,7 @@ void Line(float p0x, float p0y, float p0z, float p1x, float p1y, float p1z, uint
 			{p1x, p1y, p1z},
 			colour
 	};
+	Os::MutexLock lock(&currentTarget->addPrimMutex);
 
 	uint32_t i0 = (uint32_t) CADT_VectorPushElement(currentTarget->vertexData, &v0);
 	uint32_t i1 = (uint32_t) CADT_VectorPushElement(currentTarget->vertexData, &v1);
@@ -121,6 +123,8 @@ void Lines(uint32_t lineCount, float const * verts, uint32_t colour) {
 		LOGERROR("RenderTF_VisualDebug Line callback still hooked up after destruction!");
 		return;
 	}
+	Os::MutexLock lock(&currentTarget->addPrimMutex);
+
 	for (auto i = 0u; i < lineCount; ++i) {
 		Vertex v0 = {
 				{verts[0], verts[1], verts[2]},
@@ -150,6 +154,8 @@ void LineStrip(uint32_t lineCount, float const * verts, uint32_t colour) {
 			colour
 	};
 	verts += 3;
+	Os::MutexLock lock(&currentTarget->addPrimMutex);
+
 	uint32_t lastIndex = (uint32_t) CADT_VectorPushElement(currentTarget->vertexData, &lastVertex);
 	for (auto i = 0u; i < lineCount; ++i) {
 		Vertex curVertex = {
@@ -172,6 +178,7 @@ void SolidTris(uint32_t triCount, float const * verts, uint32_t colour) {
 		LOGERROR("RenderTF_VisualDebug Line callback still hooked up after destruction!");
 		return;
 	}
+	Os::MutexLock lock(&currentTarget->addPrimMutex);
 
 	uint32_t const primId = (uint32_t)CADT_VectorSize(currentTarget->solidTriIndexData)/3;
 	for (auto i = 0u; i < triCount; ++i) {
@@ -210,6 +217,8 @@ void SolidQuads(uint32_t quadCount, float const * verts, uint32_t colour) {
 		LOGERROR("RenderTF_VisualDebug Line callback still hooked up after destruction!");
 		return;
 	}
+	Os::MutexLock lock(&currentTarget->addPrimMutex);
+
 	uint32_t const primId = (uint32_t)CADT_VectorSize(currentTarget->solidTriIndexData)/3;
 
 	for (auto i = 0u; i < quadCount; ++i) {
@@ -264,6 +273,8 @@ void Tetrahedron(float const* pos, float const* eulerRots, float const* scale, u
 
 	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, rotateMatrix);
 	matrix = Math_MultiplyMat4F(matrix, scaleMatrix);
+
+	Os::MutexLock lock(&currentTarget->addPrimMutex);
 	RenderTF_PlatonicSolidsAddTetrahedron(currentTarget, matrix);
 }
 
@@ -279,6 +290,8 @@ void Cube(float const* pos, float const* eulerRots, float const* scale, uint32_t
 
 	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, rotateMatrix);
 	matrix = Math_MultiplyMat4F(matrix, scaleMatrix);
+
+	Os::MutexLock lock(&currentTarget->addPrimMutex);
 	RenderTF_PlatonicSolidsAddCube(currentTarget, matrix);
 }
 
@@ -294,6 +307,8 @@ void Octahedron(float const* pos, float const* eulerRots, float const* scale, ui
 
 	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, rotateMatrix);
 	matrix = Math_MultiplyMat4F(matrix, scaleMatrix);
+
+	Os::MutexLock lock(&currentTarget->addPrimMutex);
 	RenderTF_PlatonicSolidsAddOctahedron(currentTarget, matrix);
 }
 
@@ -309,6 +324,8 @@ void Icosahedron(float const* pos, float const* eulerRots, float const* scale, u
 
 	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, rotateMatrix);
 	matrix = Math_MultiplyMat4F(matrix, scaleMatrix);
+
+	Os::MutexLock lock(&currentTarget->addPrimMutex);
 	RenderTF_PlatonicSolidsAddIcosahedron(currentTarget, matrix);
 }
 
@@ -317,6 +334,7 @@ void Dodecahedron(float const* pos, float const* eulerRots, float const* scale, 
 		LOGERROR("RenderTF_VisualDebug Line callback still hooked up after destruction!");
 		return;
 	}
+
 	auto ps = currentTarget->platonicSolids;
 	Math_Mat4F translateMatrix = Math_TranslationMat4F(*(Math_Vec3F*)pos);
 	Math_Mat4F rotateMatrix = Math_RotateEulerXYZMat4F(*(Math_Vec3F*)eulerRots);
@@ -324,6 +342,8 @@ void Dodecahedron(float const* pos, float const* eulerRots, float const* scale, 
 
 	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, rotateMatrix);
 	matrix = Math_MultiplyMat4F(matrix, scaleMatrix);
+
+	Os::MutexLock lock(&currentTarget->addPrimMutex);
 	RenderTF_PlatonicSolidsAddDodecahedron(currentTarget, matrix);
 }
 
@@ -340,6 +360,8 @@ RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target
 	vd->vertexData = CADT_VectorCreate(sizeof(Vertex));
 	vd->lineIndexData = CADT_VectorCreate(sizeof(uint32_t));
 	vd->solidTriIndexData = CADT_VectorCreate(sizeof(uint32_t));
+
+	Os_MutexCreate(&vd->addPrimMutex);
 
 	if (currentTarget != nullptr) {
 		LOGWARNING("You should only have 1 framebuffer with visual debug target at any time");
@@ -495,10 +517,15 @@ void RenderTF_VisualDebugDestroy(RenderTF_VisualDebug *vd) {
 	AL2O3_VisualDebugging = vd->backup;
 	currentTarget = nullptr;
 
+	Os_MutexDestroy(&vd->addPrimMutex);
+
 	MEMORY_FREE(vd);
 }
 
 void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd, Render_GraphicsEncoderHandle encoder) {
+
+	Os::MutexLock lock(&vd->addPrimMutex);
+
 	// upload the uniforms
 	memcpy(&vd->uniforms, vd->target->debugGpuView, sizeof(Render_GpuView));
 	Render_BufferUpdateDesc uniformUpdate = {

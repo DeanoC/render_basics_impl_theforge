@@ -18,6 +18,7 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 	ASSERT(desc->frameBufferHeight);
 	ASSERT(desc->queue);
 	ASSERT(desc->commandPool);
+	ASSERT( desc->platformHandle);
 
 	auto tfrenderer = (TheForge_RendererHandle) renderer->renderer;
 
@@ -27,6 +28,7 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 	fb->commandPool = (TheForge_CmdPoolHandle) desc->commandPool;
 	fb->presentQueue = (TheForge_QueueHandle) desc->queue;
 	fb->frameBufferCount = renderer->maxFramesAhead;
+	fb->platformHandle = desc->platformHandle;
 
 	fb->renderCompleteFences = (TheForge_FenceHandle *) MEMORY_CALLOC(fb->frameBufferCount, sizeof(TheForge_FenceHandle));
 	fb->renderCompleteSemaphores =
@@ -151,6 +153,69 @@ AL2O3_EXTERN_C void Render_FrameBufferDestroy(Render_RendererHandle handle, Rend
 	MEMORY_FREE(ctx->renderCompleteFences);
 	MEMORY_FREE(ctx->renderCompleteSemaphores);
 	MEMORY_FREE(ctx);
+
+}
+AL2O3_EXTERN_C void Render_FrameBufferResize(Render_FrameBufferHandle frameBuffer, uint32_t width, uint32_t height) {
+
+	TheForge_FlushResourceUpdates();
+	Render_QueueWaitIdle(frameBuffer->presentQueue);
+
+	if(frameBuffer->swapChain) {
+		TheForge_RemoveSwapChain(frameBuffer->renderer->renderer, frameBuffer->swapChain);
+		frameBuffer->swapChain = nullptr;
+	}
+
+	if (frameBuffer->depthBuffer) {
+		TheForge_RemoveRenderTarget(frameBuffer->renderer->renderer, frameBuffer->depthBuffer);
+		frameBuffer->depthBuffer = nullptr;
+	}
+
+	TheForge_QueueHandle qs[] = {(TheForge_QueueHandle) frameBuffer->presentQueue};
+	TheForge_SwapChainDesc swapChainDesc;
+	TheForge_WindowsDesc windowDesc;
+	memset(&windowDesc, 0, sizeof(TheForge_WindowsDesc));
+	windowDesc.handle = frameBuffer->platformHandle;
+
+	swapChainDesc.pWindow = &windowDesc;
+	swapChainDesc.presentQueueCount = 1;
+	swapChainDesc.pPresentQueues = qs;
+	swapChainDesc.width = width;
+	swapChainDesc.height = height;
+	swapChainDesc.imageCount = frameBuffer->frameBufferCount;
+	swapChainDesc.sampleCount = TheForge_SC_1;
+	swapChainDesc.sampleQuality = 0;
+	swapChainDesc.colorFormat = frameBuffer->colourBufferFormat;
+	swapChainDesc.enableVsync = false;
+	swapChainDesc.colorClearValue = {0, 0, 0, 1};
+	TheForge_AddSwapChain(frameBuffer->renderer->renderer, &swapChainDesc, &frameBuffer->swapChain);
+
+	if (frameBuffer->depthBufferFormat != TinyImageFormat_UNDEFINED) {
+		// Add depth buffer
+		TheForge_RenderTargetDesc depthRTDesc;
+		depthRTDesc.arraySize = 1;
+		depthRTDesc.clearValue.depth = 1.0f;
+		depthRTDesc.clearValue.stencil = 0;
+		depthRTDesc.depth = 1;
+		depthRTDesc.format = frameBuffer->depthBufferFormat;
+		depthRTDesc.width = width;
+		depthRTDesc.height = height;
+		depthRTDesc.mipLevels = 1;
+		depthRTDesc.sampleCount = TheForge_SC_1;
+		depthRTDesc.sampleQuality = 0;
+		depthRTDesc.descriptors = TheForge_DESCRIPTOR_TYPE_UNDEFINED;
+		depthRTDesc.debugName = "Backing DepthBuffer";
+		depthRTDesc.flags = TheForge_TCF_NONE;
+		TheForge_AddRenderTarget(frameBuffer->renderer->renderer, &depthRTDesc, &frameBuffer->depthBuffer);
+	}
+
+	frameBuffer->entireViewport.z = width;
+	frameBuffer->entireViewport.w = height;
+	frameBuffer->entireScissor.z = width;
+	frameBuffer->entireScissor.w = height;
+
+	if (frameBuffer->imguiBindings) {
+		ImguiBindings_SetWindowSize(frameBuffer->imguiBindings, width, height);
+	}
 
 }
 

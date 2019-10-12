@@ -80,6 +80,8 @@ typedef struct Render_Renderer {
 
 typedef struct Render_FrameBuffer {
 	Render_Renderer *renderer;
+
+	void *platformHandle;                ///< platform specific for the window/display (HWND etc.)
 	TheForge_CmdPoolHandle commandPool;
 	TheForge_QueueHandle presentQueue;
 	uint32_t frameBufferCount;

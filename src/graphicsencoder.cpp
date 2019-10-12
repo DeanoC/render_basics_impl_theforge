@@ -37,7 +37,7 @@ AL2O3_EXTERN_C void Render_GraphicsEncoderDestroy(Render_RendererHandle renderer
 
 AL2O3_EXTERN_C void Render_GraphicsEncoderBindRenderTargets(Render_GraphicsEncoderHandle encoder,
 																														uint32_t count,
-																														Render_RenderTargetHandle *targets,
+																														Render_TextureHandle *targets,
 																														bool clear,
 																														bool setViewports,
 																														bool setScissors) {
@@ -56,7 +56,10 @@ AL2O3_EXTERN_C void Render_GraphicsEncoderBindRenderTargets(Render_GraphicsEncod
 	uint32_t height = 0;
 
 	for (uint32_t i = 0; i < count; ++i) {
-		TheForge_RenderTargetHandle rth = targets[i];
+		if(targets[i]->renderTarget == nullptr) {
+			LOGERROR("Texture without ROP_WRITE capability is being bound as a render target");
+		}
+		TheForge_RenderTargetHandle rth = targets[i]->renderTarget;
 		TheForge_RenderTargetDesc const *renderTargetDesc = TheForge_RenderTargetGetDesc(rth);
 		if (i == 0) {
 			width = renderTargetDesc->width;
@@ -208,7 +211,7 @@ AL2O3_EXTERN_C void Render_GraphicsEncoderTransition(Render_GraphicsEncoderHandl
 
 	auto textureBarriers = (TheForge_TextureBarrier *) STACK_ALLOC(sizeof(TheForge_TextureBarrier) * numTextures);
 	for (uint32_t i = 0; i < numTextures; ++i) {
-		textureBarriers[i].texture = textures[i];
+		textureBarriers[i].texture = textures[i]->texture;
 		uint32_t newState = 0;
 		for (uint32_t j = 0x1; j < Render_TTT_MAX; j = j << 1) {
 			switch ((Render_TextureTransitionType) ((uint32_t const) textureTransitions[i] & j)) {
@@ -226,7 +229,8 @@ AL2O3_EXTERN_C void Render_GraphicsEncoderTransition(Render_GraphicsEncoderHandl
 					break;
 				case Render_TTT_PRESENT: newState |= TheForge_RS_PRESENT;
 					break;
-
+				case RENDER_TTT_SHADER_ACCESS: newState |= TheForge_RS_SHADER_RESOURCE;
+					break;
 				default:
 				case Render_TTT_UNDEFINED:break;
 			}

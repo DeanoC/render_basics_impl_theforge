@@ -57,7 +57,7 @@ static void descriptorUpdate(Render_DescriptorSetHandle set,
 		dd[i].count = 1;
 		dd[i].index = ~0; // use name not index currently
 		switch (desc[i].type) {
-			case Render_DT_TEXTURE: dd[i].pTextures = &desc[i].texture;
+			case Render_DT_TEXTURE: dd[i].pTextures = &desc[i].texture->texture;
 				break;
 			case Render_DT_SAMPLER: dd[i].pSamplers = &desc[i].sampler;
 				break;

@@ -15,10 +15,8 @@
 #define Render_Queue TheForge_Queue
 #define Render_RasteriserState TheForge_RasterizerState
 #define Render_RootSignature TheForge_RootSignature
-#define Render_RenderTarget TheForge_RenderTarget
 #define Render_Sampler TheForge_Sampler
 #define Render_Shader TheForge_Shader
-#define Render_Texture TheForge_Texture
 #define Render_VertexLayout TheForge_VertexLayout const
 
 #include "render_basics/api.h"
@@ -51,7 +49,10 @@ typedef struct Render_GraphicsEncoder {
 	Render_View view;
 } Render_GraphicsEncoder;
 
-
+typedef struct Render_Texture {
+	TheForge_TextureHandle texture;
+	TheForge_RenderTargetHandle	renderTarget;
+} Render_Texture;
 
 typedef struct Render_Renderer {
 	TheForge_RendererHandle renderer;
@@ -86,7 +87,6 @@ typedef struct Render_FrameBuffer {
 	TheForge_QueueHandle presentQueue;
 	uint32_t frameBufferCount;
 	TinyImageFormat colourBufferFormat;
-	TinyImageFormat depthBufferFormat;
 
 	TheForge_SwapChainHandle swapChain;
 	TheForge_RenderTargetHandle depthBuffer;
@@ -104,7 +104,7 @@ typedef struct Render_FrameBuffer {
 	struct Render_GpuView *debugGpuView;
 
 	// current (this frame) data
-	TheForge_RenderTargetHandle currentColourTarget;
+	Render_Texture currentColourTarget;
 	TheForge_CmdHandle currentCmd;
 	Render_GraphicsEncoder graphicsEncoder;
 

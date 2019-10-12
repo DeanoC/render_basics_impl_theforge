@@ -15,27 +15,30 @@ TheForge_DescriptorType Render_TextureUsageFlagsToDescriptorType(Render_TextureU
 		dt |= TheForge_DESCRIPTOR_TYPE_RW_TEXTURE;
 	}
 
-	if (tuf & Render_TUF_ROP_READ) {
-	}
-
-	if (tuf & Render_TUF_ROP_WRITE) {
-	}
-
 	return (TheForge_DescriptorType) dt;
 }
 
 AL2O3_EXTERN_C Render_TextureHandle Render_TextureSyncCreate(Render_RendererHandle renderer,
 																														 Render_TextureCreateDesc const *desc) {
 
-	TheForge_TextureDesc const texDesc{
-			TheForge_TCF_NONE,
+	Render_TextureHandle texture = (Render_TextureHandle) MEMORY_CALLOC(1, sizeof(Render_Texture));
+	if (!texture) {
+		return nullptr;
+	}
+
+	// the forge has seperate textures and render targets, whereas we just define it via ROP_READ/WRITE
+	// split creation if ROP_WRITE is defined
+	if(desc->usageflags & Render_TUF_ROP_WRITE) {
+		// TODO check render target format can be written to and if require blended with
+
+		TheForge_RenderTargetDesc rtDesc {
+			TheForge_TCF_OWN_MEMORY_BIT,
 			desc->width,
 			desc->height,
 			desc->depth,
 			desc->slices,
 			desc->mipLevels,
 			(TheForge_SampleCount) (desc->sampleCount ? desc->sampleCount : 1),
-			desc->sampleQuality,
 			desc->format,
 			{{
 					 desc->renderTargetClearValue.r,
@@ -44,16 +47,45 @@ AL2O3_EXTERN_C Render_TextureHandle Render_TextureSyncCreate(Render_RendererHand
 					 desc->renderTargetClearValue.a}},
 			TheForge_RS_UNDEFINED,
 			Render_TextureUsageFlagsToDescriptorType(desc->usageflags),
-			nullptr,
 			desc->debugName,
-			nullptr,
-			0,
-			0
-	};
-	Render_TextureHandle texture = nullptr;
-	TheForge_AddTexture(renderer->renderer, &texDesc, &texture);
-	if (!texture) {
-		return nullptr;
+		};
+
+		TheForge_AddRenderTarget(renderer->renderer, &rtDesc, &texture->renderTarget);
+		if(!texture->renderTarget) {
+			MEMORY_FREE(texture);
+			return nullptr;
+		}
+		texture->texture = TheForge_RenderTargetGetTexture(texture->renderTarget);
+
+	} else {
+		// plain texture
+		ASSERT((desc->usageflags & Render_TUF_ROP_READ) == 0);
+
+		TheForge_TextureDesc const texDesc{
+				TheForge_TCF_NONE,
+				desc->width,
+				desc->height,
+				desc->depth,
+				desc->slices,
+				desc->mipLevels,
+				(TheForge_SampleCount) (desc->sampleCount ? desc->sampleCount : 1),
+				desc->sampleQuality,
+				desc->format,
+				{{}},
+				TheForge_RS_UNDEFINED,
+				Render_TextureUsageFlagsToDescriptorType(desc->usageflags),
+				nullptr,
+				desc->debugName,
+				nullptr,
+				0,
+				0
+		};
+
+		TheForge_AddTexture(renderer->renderer, &texDesc, &texture->texture);
+		if (!texture->texture) {
+			MEMORY_FREE(texture);
+			return nullptr;
+		}
 	}
 
 	if (desc->initialData != nullptr) {
@@ -77,7 +109,13 @@ AL2O3_EXTERN_C void Render_TextureDestroy(Render_RendererHandle renderer, Render
 	if (!renderer || !texture) {
 		return;
 	}
-	TheForge_RemoveTexture(renderer->renderer, texture);
+	if(texture->renderTarget) {
+		TheForge_RemoveRenderTarget(renderer->renderer, texture->renderTarget);
+	} else {
+		TheForge_RemoveTexture(renderer->renderer, texture->texture);
+	}
+
+	MEMORY_FREE(texture);
 }
 
 AL2O3_EXTERN_C void Render_TextureSyncUpdate(Render_TextureHandle texture, Render_TextureUpdateDesc const *desc) {
@@ -93,7 +131,7 @@ AL2O3_EXTERN_C void Render_TextureSyncUpdate(Render_TextureHandle texture, Rende
 	};
 
 	TheForge_TextureUpdateDesc updateDesc{
-			texture,
+			texture->texture,
 			&rid
 	};
 

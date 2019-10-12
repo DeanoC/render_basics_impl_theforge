@@ -4,7 +4,6 @@
 #include "render_basics/pipeline.h"
 #include "render_basics/framebuffer.h"
 #include "render_basics/graphicsencoder.h"
-#include "render_basics/descriptorset.h"
 #include "visdebug.hpp"
 
 struct Solid {
@@ -469,7 +468,7 @@ bool RenderTF_PlatonicSolidsCreate(RenderTF_VisualDebug *vd) {
 	platonicPipeDesc.rasteriserState = Render_GetStockRasterisationState(vd->renderer, Render_SRS_BACKCULL);
 	platonicPipeDesc.colourRenderTargetCount = 1;
 	platonicPipeDesc.colourFormats = colourFormats;
-	platonicPipeDesc.depthStencilFormat = Render_FrameBufferDepthFormat(vd->target);
+	platonicPipeDesc.depthStencilFormat = TinyImageFormat_UNDEFINED;
 	platonicPipeDesc.sampleCount = 1;
 	platonicPipeDesc.sampleQuality = 0;
 	platonicPipeDesc.primitiveTopo = Render_PT_TRI_LIST;

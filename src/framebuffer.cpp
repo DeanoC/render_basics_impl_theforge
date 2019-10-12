@@ -62,27 +62,15 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 	swapChainDesc.colorClearValue = {0, 0, 0, 1};
 	TheForge_AddSwapChain(tfrenderer, &swapChainDesc, &fb->swapChain);
 
-	if (desc->depthFormat != TinyImageFormat_UNDEFINED) {
-		// Add depth buffer
-		TheForge_RenderTargetDesc depthRTDesc;
-		depthRTDesc.arraySize = 1;
-		depthRTDesc.clearValue.depth = 1.0f;
-		depthRTDesc.clearValue.stencil = 0;
-		depthRTDesc.depth = 1;
-		depthRTDesc.format = desc->depthFormat;
-		depthRTDesc.width = desc->frameBufferWidth;
-		depthRTDesc.height = desc->frameBufferHeight;
-		depthRTDesc.mipLevels = 1;
-		depthRTDesc.sampleCount = TheForge_SC_1;
-		depthRTDesc.sampleQuality = 0;
-		depthRTDesc.descriptors = TheForge_DESCRIPTOR_TYPE_UNDEFINED;
-		depthRTDesc.debugName = "Backing DepthBuffer";
-		depthRTDesc.flags = TheForge_TCF_NONE;
-		TheForge_AddRenderTarget(tfrenderer, &depthRTDesc, &fb->depthBuffer);
-	}
-
 	fb->colourBufferFormat = swapChainDesc.colorFormat;
-	fb->depthBufferFormat = desc->depthFormat;
+	fb->entireViewport.x = 0.0f;
+	fb->entireScissor.x = 0;
+	fb->entireViewport.y = 0.0f;
+	fb->entireScissor.y = 0;
+	fb->entireScissor.z = desc->frameBufferWidth;
+	fb->entireScissor.w = desc->frameBufferHeight;
+	fb->entireViewport.z = (float) desc->frameBufferWidth;
+	fb->entireViewport.w = (float) desc->frameBufferHeight;
 
 	if (desc->visualDebugTarget) {
 		fb->visualDebug = RenderTF_VisualDebugCreate(fb);
@@ -112,6 +100,7 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 																	desc->frameBufferHeight);
 		}
 	}
+
 	return fb;
 }
 
@@ -136,9 +125,6 @@ AL2O3_EXTERN_C void Render_FrameBufferDestroy(Render_RendererHandle handle, Rend
 
 	if (ctx->swapChain) {
 		TheForge_RemoveSwapChain(renderer, ctx->swapChain);
-	}
-	if (ctx->depthBuffer) {
-		TheForge_RemoveRenderTarget(renderer, ctx->depthBuffer);
 	}
 
 	TheForge_RemoveCmd_n(ctx->commandPool, ctx->frameBufferCount, ctx->frameCmds);
@@ -165,11 +151,6 @@ AL2O3_EXTERN_C void Render_FrameBufferResize(Render_FrameBufferHandle frameBuffe
 		frameBuffer->swapChain = nullptr;
 	}
 
-	if (frameBuffer->depthBuffer) {
-		TheForge_RemoveRenderTarget(frameBuffer->renderer->renderer, frameBuffer->depthBuffer);
-		frameBuffer->depthBuffer = nullptr;
-	}
-
 	TheForge_QueueHandle qs[] = {(TheForge_QueueHandle) frameBuffer->presentQueue};
 	TheForge_SwapChainDesc swapChainDesc;
 	TheForge_WindowsDesc windowDesc;
@@ -189,29 +170,10 @@ AL2O3_EXTERN_C void Render_FrameBufferResize(Render_FrameBufferHandle frameBuffe
 	swapChainDesc.colorClearValue = {0, 0, 0, 1};
 	TheForge_AddSwapChain(frameBuffer->renderer->renderer, &swapChainDesc, &frameBuffer->swapChain);
 
-	if (frameBuffer->depthBufferFormat != TinyImageFormat_UNDEFINED) {
-		// Add depth buffer
-		TheForge_RenderTargetDesc depthRTDesc;
-		depthRTDesc.arraySize = 1;
-		depthRTDesc.clearValue.depth = 1.0f;
-		depthRTDesc.clearValue.stencil = 0;
-		depthRTDesc.depth = 1;
-		depthRTDesc.format = frameBuffer->depthBufferFormat;
-		depthRTDesc.width = width;
-		depthRTDesc.height = height;
-		depthRTDesc.mipLevels = 1;
-		depthRTDesc.sampleCount = TheForge_SC_1;
-		depthRTDesc.sampleQuality = 0;
-		depthRTDesc.descriptors = TheForge_DESCRIPTOR_TYPE_UNDEFINED;
-		depthRTDesc.debugName = "Backing DepthBuffer";
-		depthRTDesc.flags = TheForge_TCF_NONE;
-		TheForge_AddRenderTarget(frameBuffer->renderer->renderer, &depthRTDesc, &frameBuffer->depthBuffer);
-	}
-
-	frameBuffer->entireViewport.z = width;
-	frameBuffer->entireViewport.w = height;
 	frameBuffer->entireScissor.z = width;
 	frameBuffer->entireScissor.w = height;
+	frameBuffer->entireViewport.z = (float) width;
+	frameBuffer->entireViewport.w = (float) height;
 
 	if (frameBuffer->imguiBindings) {
 		ImguiBindings_SetWindowSize(frameBuffer->imguiBindings, width, height);
@@ -238,29 +200,25 @@ AL2O3_EXTERN_C void Render_FrameBufferNewFrame(Render_FrameBufferHandle ctx) {
 	}
 
 	ctx->currentCmd = ctx->frameCmds[frameIndex];
-	ctx->currentColourTarget = TheForge_SwapChainGetRenderTarget(ctx->swapChain, frameIndex);
+	ctx->currentColourTarget.renderTarget = TheForge_SwapChainGetRenderTarget(ctx->swapChain, frameIndex);
+	ctx->currentColourTarget.texture = TheForge_RenderTargetGetTexture(ctx->currentColourTarget.renderTarget);
 	ctx->graphicsEncoder.cmd = ctx->currentCmd;
 	ctx->graphicsEncoder.view = Render_View{};
 
 	TheForge_BeginCmd(ctx->currentCmd);
 
 	// insert write barrier for render target if we are more the N frames ahead
-	Render_TextureHandle textures[] = {
-			TheForge_RenderTargetGetTexture(ctx->currentColourTarget),
-			ctx->depthBuffer ? TheForge_RenderTargetGetTexture(ctx->depthBuffer) : nullptr
-	};
-	Render_TextureTransitionType textureTransitions[] = {
-			Render_TTT_RENDER_TARGET,
-			Render_TTT_DEPTH_WRITE};
+	Render_TextureTransitionType const textureTransitions[] = { Render_TTT_RENDER_TARGET};
+	Render_TextureHandle textures[] = { &ctx->currentColourTarget };
+
 	Render_GraphicsEncoderTransition(&ctx->graphicsEncoder, 0, nullptr, nullptr,
-																	 ctx->depthBuffer ? 2 : 1, textures, textureTransitions);
+																	 1, textures, textureTransitions);
 
 	if (ctx->visualDebug || ctx->imguiBindings) {
-		Render_RenderTargetHandle renderTargets[2] = {ctx->currentColourTarget, ctx->depthBuffer};
 		// ensure the buffer is cleared if we used visual debug or imgui bindings
 		Render_GraphicsEncoderBindRenderTargets(&ctx->graphicsEncoder,
-																						renderTargets[1] ? 2 : 1,
-																						renderTargets,
+																						1,
+																						textures,
 																						true,
 																						true,
 																						true);
@@ -287,9 +245,9 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 	auto frameIndex = ctx->renderer->frameIndex;
 
 	if (ctx->visualDebug || ctx->imguiBindings) {
-		Render_RenderTargetHandle renderTargets[2] = {ctx->currentColourTarget, ctx->depthBuffer};
+		Render_TextureHandle renderTargets[] = { &ctx->currentColourTarget};
 		Render_GraphicsEncoderBindRenderTargets(&ctx->graphicsEncoder,
-																						renderTargets[1] ? 2 : 1,
+																						1,
 																						renderTargets,
 																						false,
 																						true,
@@ -306,7 +264,7 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 
 	Render_GraphicsEncoderBindRenderTargets(&ctx->graphicsEncoder, 0, nullptr, false, false, false);
 
-	Render_TextureHandle textures[] = {TheForge_RenderTargetGetTexture(ctx->currentColourTarget)};
+	Render_TextureHandle textures[] = {&ctx->currentColourTarget};
 	Render_TextureTransitionType textureTransitions[] = {Render_TTT_PRESENT};
 	Render_GraphicsEncoderTransition(&ctx->graphicsEncoder, 0, nullptr, nullptr, 1, textures, textureTransitions);
 
@@ -337,29 +295,12 @@ AL2O3_EXTERN_C void Render_FrameBufferUpdate(Render_FrameBufferHandle frameBuffe
 		return;
 	}
 
-	frameBuffer->entireViewport.x = 0.0f;
-	frameBuffer->entireScissor.x = 0;
-	frameBuffer->entireViewport.y = 0.0f;
-	frameBuffer->entireScissor.y = 0;
-
-	frameBuffer->entireScissor.z = width;
-	frameBuffer->entireScissor.w = height;
-	frameBuffer->entireViewport.z = (float) width;
-	frameBuffer->entireViewport.w = (float) height;
-
-	ImguiBindings_SetWindowSize(frameBuffer->imguiBindings,
-															width,
-															height);
-
 	ImguiBindings_UpdateInput(frameBuffer->imguiBindings, deltaMS);
 }
-AL2O3_EXTERN_C Render_RenderTargetHandle Render_FrameBufferColourTarget(Render_FrameBufferHandle frameBuffer) {
-	return frameBuffer->currentColourTarget;
+AL2O3_EXTERN_C Render_TextureHandle Render_FrameBufferColourTarget(Render_FrameBufferHandle frameBuffer) {
+	return &frameBuffer->currentColourTarget;
 }
 
-AL2O3_EXTERN_C Render_RenderTargetHandle Render_FrameBufferDepthTarget(Render_FrameBufferHandle frameBuffer) {
-	return frameBuffer->depthBuffer;
-}
 
 AL2O3_EXTERN_C Render_GraphicsEncoderHandle Render_FrameBufferGraphicsEncoder(Render_FrameBufferHandle frameBuffer) {
 	return &frameBuffer->graphicsEncoder;
@@ -371,13 +312,6 @@ AL2O3_EXTERN_C TinyImageFormat Render_FrameBufferColourFormat(Render_FrameBuffer
 	}
 
 	return ctx->colourBufferFormat;
-}
-
-AL2O3_EXTERN_C TinyImageFormat Render_FrameBufferDepthFormat(Render_FrameBufferHandle ctx) {
-	if (!ctx) {
-		return TinyImageFormat_UNDEFINED;
-	}
-	return ctx->depthBufferFormat;
 }
 
 AL2O3_EXTERN_C float const *Render_FrameBufferImguiScaleOffsetMatrix(Render_FrameBufferHandle frameBuffer) {

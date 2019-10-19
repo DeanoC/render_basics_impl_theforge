@@ -1,5 +1,3 @@
-#include <render_basics/theforge/handlemanager.h>
-#include <render_basics/api.h>
 #include "al2o3_platform/platform.h"
 #include "al2o3_memory/memory.h"
 #include "al2o3_handle/dynamic.h"
@@ -7,8 +5,7 @@
 #include "tiny_imageformat/tinyimageformat_query.h"
 #include "gfx_imgui_al2o3_theforge_bindings/bindings.h"
 
-#include "render_basics/theforge/api.h"
-#include "render_basics/api.h"
+#include "render_basics/theforge/handlemanager.h"
 #include "render_basics/framebuffer.h"
 #include "render_basics/graphicsencoder.h"
 #include "render_basics/view.h"

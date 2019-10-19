@@ -28,7 +28,7 @@ static void CreateHandleManager() {
 	// medium volume
 	hm->rasteriserStates = Handle_DynamicManager32Create(sizeof(Render_RasteriserState), 256, 8, true);
 	hm->blendStates = Handle_DynamicManager32Create(sizeof(Render_BlendState), 256, 8, true);
-	hm->depthStates = Handle_DynamicManager32Create(sizeof(Render_DepthState), 265, 8, true);
+	hm->depthStates = Handle_DynamicManager32Create(sizeof(Render_DepthState), 256, 8, true);
 	hm->samplers = Handle_DynamicManager32Create(sizeof(Render_Sampler), 256, 8, true);
 	hm->shaderObjects = Handle_DynamicManager32Create(sizeof(Render_ShaderObject), 128, 8, true);
 	hm->shaders = Handle_DynamicManager32Create(sizeof(Render_Shader), 64, 8, true);

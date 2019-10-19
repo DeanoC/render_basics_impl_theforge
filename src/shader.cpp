@@ -65,7 +65,6 @@ AL2O3_EXTERN_C Render_ShaderObjectHandle Render_ShaderObjectCreate(Render_Render
 	if (!vokay) {
 		MEMORY_FREE((void *) shaderObject->output.log);
 		MEMORY_FREE((void *) shaderObject->output.shader);
-		MEMORY_FREE(shaderObject);
 		Render_ShaderObjectHandleRelease(handle);
 		return {Handle_InvalidDynamicHandle32};
 	}

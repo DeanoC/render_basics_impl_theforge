@@ -2,7 +2,6 @@
 
 #include "al2o3_platform/platform.h"
 #include "al2o3_handle/dynamic.h"
-#include "render_basics/api.h"
 #include "render_basics/theforge/api.h"
 
 typedef struct Render_HandleManagerTheForge {
@@ -30,7 +29,9 @@ AL2O3_EXTERN_C Render_HandleManagerTheForge* g_Render_HandleManagerTheForge;
 
 #define RENDER_HANDLE_BUILD(type, manager) \
 AL2O3_FORCE_INLINE Render_##type##Handle Render_##type##HandleAlloc(void) { \
-	return { Handle_DynamicManager32Alloc(g_Render_HandleManagerTheForge->manager) }; \
+	Render_##type##Handle handle; \
+	handle.handle = Handle_DynamicManager32Alloc(g_Render_HandleManagerTheForge->manager); \
+	return handle; \
 } \
 AL2O3_FORCE_INLINE void Render_##type##HandleRelease(Render_##type##Handle handle) { \
 	Handle_DynamicManager32Release(g_Render_HandleManagerTheForge->manager, handle.handle); \

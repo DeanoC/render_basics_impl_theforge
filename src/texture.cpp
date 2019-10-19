@@ -5,6 +5,7 @@
 #include "render_basics/theforge/api.h"
 #include "render_basics/api.h"
 #include "render_basics/texture.h"
+#include "render_basics/theforge/handlemanager.h"
 
 TheForge_DescriptorType Render_TextureUsageFlagsToDescriptorType(Render_TextureUsageFlags tuf) {
 	uint32_t dt = 0;
@@ -21,10 +22,11 @@ TheForge_DescriptorType Render_TextureUsageFlagsToDescriptorType(Render_TextureU
 AL2O3_EXTERN_C Render_TextureHandle Render_TextureSyncCreate(Render_RendererHandle renderer,
 																														 Render_TextureCreateDesc const *desc) {
 
-	Render_TextureHandle texture = (Render_TextureHandle) MEMORY_CALLOC(1, sizeof(Render_Texture));
-	if (!texture) {
-		return nullptr;
+	Render_TextureHandle handle = Render_TextureHandleAlloc();
+	if (!handle.handle) {
+		return {Handle_InvalidDynamicHandle32};
 	}
+	Render_Texture* texture = Render_TextureHandleToPtr(handle);
 
 	// the forge has seperate textures and render targets, whereas we just define it via ROP_READ/WRITE
 	// split creation if ROP_WRITE is defined
@@ -52,8 +54,8 @@ AL2O3_EXTERN_C Render_TextureHandle Render_TextureSyncCreate(Render_RendererHand
 
 		TheForge_AddRenderTarget(renderer->renderer, &rtDesc, &texture->renderTarget);
 		if(!texture->renderTarget) {
-			MEMORY_FREE(texture);
-			return nullptr;
+			Render_TextureHandleRelease(handle);
+			return {Handle_InvalidDynamicHandle32};
 		}
 		texture->texture = TheForge_RenderTargetGetTexture(texture->renderTarget);
 
@@ -83,8 +85,8 @@ AL2O3_EXTERN_C Render_TextureHandle Render_TextureSyncCreate(Render_RendererHand
 
 		TheForge_AddTexture(renderer->renderer, &texDesc, &texture->texture);
 		if (!texture->texture) {
-			MEMORY_FREE(texture);
-			return nullptr;
+			Render_TextureHandleRelease(handle);
+			return {Handle_InvalidDynamicHandle32};
 		}
 	}
 
@@ -99,26 +101,27 @@ AL2O3_EXTERN_C Render_TextureHandle Render_TextureSyncCreate(Render_RendererHand
 				desc->initialData,
 		};
 
-		Render_TextureSyncUpdate(texture, &update);
+		Render_TextureSyncUpdate(handle, &update);
 	}
 
-	return texture;
+	return handle;
 }
 
-AL2O3_EXTERN_C void Render_TextureDestroy(Render_RendererHandle renderer, Render_TextureHandle texture) {
-	if (!renderer || !texture) {
+AL2O3_EXTERN_C void Render_TextureDestroy(Render_RendererHandle renderer, Render_TextureHandle handle) {
+	if (!renderer || !handle.handle) {
 		return;
 	}
+	Render_Texture* texture = Render_TextureHandleToPtr(handle);
 	if(texture->renderTarget) {
 		TheForge_RemoveRenderTarget(renderer->renderer, texture->renderTarget);
 	} else {
 		TheForge_RemoveTexture(renderer->renderer, texture->texture);
 	}
 
-	MEMORY_FREE(texture);
+	Render_TextureHandleRelease(handle);
 }
 
-AL2O3_EXTERN_C void Render_TextureSyncUpdate(Render_TextureHandle texture, Render_TextureUpdateDesc const *desc) {
+AL2O3_EXTERN_C void Render_TextureSyncUpdate(Render_TextureHandle handle, Render_TextureUpdateDesc const *desc) {
 	TheForge_RawImageData rid{
 			(unsigned char const *) desc->data,
 			desc->format,
@@ -129,6 +132,8 @@ AL2O3_EXTERN_C void Render_TextureSyncUpdate(Render_TextureHandle texture, Rende
 			desc->mipLevels,
 			true
 	};
+
+	Render_Texture* texture = Render_TextureHandleToPtr(handle);
 
 	TheForge_TextureUpdateDesc updateDesc{
 			texture->texture,

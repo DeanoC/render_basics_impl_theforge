@@ -4,13 +4,15 @@
 #include "render_basics/theforge/api.h"
 #include "render_basics/api.h"
 #include "render_basics/shader.h"
-
+#include "render_basics/theforge/handlemanager.h"
 
 AL2O3_EXTERN_C Render_ShaderObjectHandle Render_ShaderObjectCreate(Render_RendererHandle renderer, Render_ShaderObjectDesc const * desc) {
 
-	auto shaderObject = (Render_ShaderObject*)MEMORY_CALLOC(1, sizeof(Render_ShaderObject));
+	Render_ShaderObjectHandle handle = Render_ShaderObjectHandleAlloc();
+
+	Render_ShaderObject* shaderObject = Render_ShaderObjectHandleToPtr(handle);
 	if(!shaderObject) {
-		return nullptr;
+		return {Handle_InvalidDynamicHandle32};
 	}
 
 	strncpy(shaderObject->entryPoint, desc->entryPoint, 63);
@@ -64,9 +66,11 @@ AL2O3_EXTERN_C Render_ShaderObjectHandle Render_ShaderObjectCreate(Render_Render
 		MEMORY_FREE((void *) shaderObject->output.log);
 		MEMORY_FREE((void *) shaderObject->output.shader);
 		MEMORY_FREE(shaderObject);
-		return nullptr;
+		Render_ShaderObjectHandleRelease(handle);
+		return {Handle_InvalidDynamicHandle32};
 	}
-	return shaderObject;
+
+	return handle;
 }
 AL2O3_EXTERN_C Render_ShaderHandle Render_ShaderCreate(Render_RendererHandle renderer,
 																											 uint32_t count,
@@ -77,7 +81,8 @@ AL2O3_EXTERN_C Render_ShaderHandle Render_ShaderCreate(Render_RendererHandle ren
 	TheForge_BinaryShaderDesc sdesc{};
 #endif
 	for (uint32_t i = 0; i < count; ++i) {
-		sdesc.stages = (TheForge_ShaderStage) (sdesc.stages | shaderObjects[i]->shaderType);
+		Render_ShaderObject* shaderObject = Render_ShaderObjectHandleToPtr(shaderObjects[i]);
+		sdesc.stages = (TheForge_ShaderStage) (sdesc.stages | shaderObject->shaderType);
 
 #if AL2O3_PLATFORM == AL2O3_PLATFORM_APPLE_MAC
 		TheForge_ShaderStageDesc ssdesc {};
@@ -88,12 +93,12 @@ AL2O3_EXTERN_C Render_ShaderHandle Render_ShaderCreate(Render_RendererHandle ren
 //		LOGINFO(ssdesc.code);
 #else
 		TheForge_BinaryShaderStageDesc ssdesc{};
-		ssdesc.entryPoint = shaderObjects[i]->entryPoint;
-		ssdesc.byteCode = (char const *) shaderObjects[i]->output.shader;
-		ssdesc.byteCodeSize = (uint32_t) shaderObjects[i]->output.shaderSize;
+		ssdesc.entryPoint = shaderObject->entryPoint;
+		ssdesc.byteCode = (char const *) shaderObject->output.shader;
+		ssdesc.byteCodeSize = (uint32_t) shaderObject->output.shaderSize;
 #endif
 
-		switch (shaderObjects[i]->shaderType) {
+		switch (shaderObject->shaderType) {
 			case TheForge_SS_VERT: sdesc.vert = ssdesc;
 				break;
 			case TheForge_SS_FRAG: sdesc.frag = ssdesc;
@@ -108,36 +113,43 @@ AL2O3_EXTERN_C Render_ShaderHandle Render_ShaderCreate(Render_RendererHandle ren
 				break;
 			case TheForge_SS_RAYTRACING: sdesc.comp = ssdesc;
 				break;
-			default: return nullptr;
+			default: return {Handle_InvalidDynamicHandle32};
 		}
 	}
 
-	TheForge_ShaderHandle shader;
+	Render_ShaderHandle shaderHandle = Render_ShaderHandleAlloc();
+	Render_Shader* shader = Render_ShaderHandleToPtr(shaderHandle);
 
 #if AL2O3_PLATFORM == AL2O3_PLATFORM_APPLE_MAC
-	TheForge_AddShader(renderer->renderer, &sdesc, &shader);
+	TheForge_AddShader(renderer->renderer, &sdesc, &shader->shader);
 #else
-	TheForge_AddShaderBinary(renderer->renderer, &sdesc, &shader);
+	TheForge_AddShaderBinary(renderer->renderer, &sdesc, &shader->shader);
 #endif
-	return shader;
+
+	return shaderHandle;
 }
 
-AL2O3_EXTERN_C void Render_ShaderObjectDestroy(Render_RendererHandle renderer, Render_ShaderObjectHandle shaderObject) {
-	if(!shaderObject)
+AL2O3_EXTERN_C void Render_ShaderObjectDestroy(Render_RendererHandle renderer, Render_ShaderObjectHandle handle) {
+	if(!handle.handle)
 	{
 		return;
 	}
+	Render_ShaderObject* shaderObject = Render_ShaderObjectHandleToPtr(handle);
 	MEMORY_FREE((void *) shaderObject->output.log);
 	MEMORY_FREE((void *) shaderObject->output.shader);
-	MEMORY_FREE(shaderObject);
+	Render_ShaderObjectHandleRelease(handle);
 
 }
-AL2O3_EXTERN_C void Render_ShaderDestroy(Render_RendererHandle renderer, Render_ShaderHandle shader) {
-	if (!renderer || !shader) {
+AL2O3_EXTERN_C void Render_ShaderDestroy(Render_RendererHandle renderer, Render_ShaderHandle handle) {
+	if (!renderer || !handle.handle) {
 		return;
 	}
 
-	TheForge_RemoveShader(renderer->renderer, shader);
+	Render_Shader* shader = Render_ShaderHandleToPtr(handle);
+
+	TheForge_RemoveShader(renderer->renderer, shader->shader);
+	Render_ShaderHandleRelease(handle);
+
 }
 
 // helper for the standard vertex + fragment shader from VFile
@@ -162,10 +174,10 @@ AL2O3_EXTERN_C  Render_ShaderHandle Render_CreateShaderFromVFile(Render_Renderer
 	shaderObjects[0] = Render_ShaderObjectCreate(renderer, &vsod);
 	shaderObjects[1] = Render_ShaderObjectCreate(renderer, &fsod);
 
-	if (!shaderObjects[0] || !shaderObjects[1]) {
+	if (!shaderObjects[0].handle || !shaderObjects[1].handle) {
 		Render_ShaderObjectDestroy(renderer, shaderObjects[0]);
 		Render_ShaderObjectDestroy(renderer, shaderObjects[1]);
-		return nullptr;
+		return {Handle_InvalidDynamicHandle32};
 	}
 
 	Render_ShaderHandle shader =  Render_ShaderCreate(renderer, 2, shaderObjects);

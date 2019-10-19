@@ -2,27 +2,26 @@
 #include "al2o3_memory/memory.h"
 
 #include "render_basics/theforge/api.h"
+#include "render_basics/theforge/handlemanager.h"
 #include "render_basics/api.h"
 
 
-AL2O3_EXTERN_C Render_BlitEncoderHandle Render_BlitEncoderCreate(Render_RendererHandle renderer, Render_CmdPoolHandle cmdPoolHandle) {
-	auto encoder = (Render_BlitEncoderHandle) MEMORY_CALLOC(1, sizeof(Render_BlitEncoder));
-	if (!encoder) {
-		return nullptr;
-	}
+AL2O3_EXTERN_C Render_BlitEncoderHandle Render_BlitEncoderCreate(Render_RendererHandle renderer) {
 
-	TheForge_AddCmd(cmdPoolHandle, false, &encoder->cmd);
-	encoder->cmdPool = cmdPoolHandle;
+	Render_BlitEncoderHandle handle = Render_BlitEncoderHandleAlloc();
+	Render_BlitEncoder* encoder = Render_BlitEncoderHandleToPtr(handle);
+	encoder->cmdPool = renderer->blitCmdPool;
+	TheForge_AddCmd(encoder->cmdPool, false, &encoder->cmd);
 
-	return encoder;
+	return handle;
 }
 
-AL2O3_EXTERN_C void Render_BlitEncoderDestroy(Render_RendererHandle renderer, Render_BlitEncoderHandle encoder){
-	if(!renderer || !encoder) return;
+AL2O3_EXTERN_C void Render_BlitEncoderDestroy(Render_RendererHandle renderer, Render_BlitEncoderHandle handle) {
 
+	Render_BlitEncoder* encoder = Render_BlitEncoderHandleToPtr(handle);
 	TheForge_RemoveCmd(encoder->cmdPool, encoder->cmd);
+	Render_BlitEncoderHandleRelease(handle);
 
-	MEMORY_FREE(encoder);
 }
 
 

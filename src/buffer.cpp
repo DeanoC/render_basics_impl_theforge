@@ -3,20 +3,17 @@
 #include "gfx_theforge/theforge.h"
 
 #include "render_basics/theforge/api.h"
+#include "render_basics/theforge/handlemanager.h"
 #include "render_basics/api.h"
 #include "render_basics/buffer.h"
 
+
 AL2O3_EXTERN_C Render_BufferHandle Render_BufferCreateVertex(Render_RendererHandle renderer,
 																														 Render_BufferVertexDesc const *desc) {
-
-	Render_BufferHandle buffer = (Render_BufferHandle) MEMORY_CALLOC(1, sizeof(Render_Buffer));
-	if (!buffer) {
-		return nullptr;
-	}
-
+	Render_BufferHandle handle = Render_BufferHandleAlloc();
+	Render_Buffer* buffer = Render_BufferHandleToPtr(handle);
 	buffer->renderer = renderer;
 	buffer->size = desc->vertexCount * desc->vertexSize;
-
 	TheForge_BufferDesc const vbDesc{
 			buffer->size * (desc->frequentlyUpdated ? renderer->maxFramesAhead : 1),
 			desc->frequentlyUpdated ? TheForge_RMU_CPU_TO_GPU : TheForge_RMU_GPU_ONLY,
@@ -33,17 +30,16 @@ AL2O3_EXTERN_C Render_BufferHandle Render_BufferCreateVertex(Render_RendererHand
 	};
 
 	TheForge_AddBuffer(renderer->renderer, &vbDesc, &buffer->buffer);
-	return buffer;
+
+	return handle;
 }
 
 
 AL2O3_EXTERN_C Render_BufferHandle Render_BufferCreateIndex(Render_RendererHandle renderer,
 																														Render_BufferIndexDesc const *desc) {
-	Render_BufferHandle buffer = (Render_BufferHandle) MEMORY_CALLOC(1, sizeof(Render_Buffer));
-	if (!buffer) {
-		return nullptr;
-	}
+	Render_BufferHandle handle = Render_BufferHandleAlloc();
 
+	Render_Buffer* buffer = Render_BufferHandleToPtr(handle);
 	buffer->renderer = renderer;
 	buffer->size = desc->indexCount * desc->indexSize;
 
@@ -63,20 +59,20 @@ AL2O3_EXTERN_C Render_BufferHandle Render_BufferCreateIndex(Render_RendererHandl
 	};
 
 	TheForge_AddBuffer(renderer->renderer, &ibDesc, &buffer->buffer);
-	return buffer;
+	return handle;
 }
 
 AL2O3_EXTERN_C Render_BufferHandle Render_BufferCreateUniform(Render_RendererHandle renderer,
 																															Render_BufferUniformDesc const *desc) {
-	Render_BufferHandle buffer = (Render_BufferHandle) MEMORY_CALLOC(1, sizeof(Render_Buffer));
-	if (!buffer) {
-		return nullptr;
-	}
+	Render_BufferHandle handle = Render_BufferHandleAlloc();
+
+	Render_Buffer* buffer = Render_BufferHandleToPtr(handle);
+
 	buffer->renderer = renderer;
 	buffer->size = desc->size;
 
 	TheForge_BufferDesc const ubDesc{
-			buffer->size * renderer->maxFramesAhead,
+			buffer->size * (desc->frequentlyUpdated ? renderer->maxFramesAhead : 1),
 			desc->frequentlyUpdated ? TheForge_RMU_CPU_TO_GPU : TheForge_RMU_GPU_ONLY,
 			TheForge_BCF_NO_DESCRIPTOR_VIEW_CREATION,
 			TheForge_RS_UNDEFINED,
@@ -91,21 +87,22 @@ AL2O3_EXTERN_C Render_BufferHandle Render_BufferCreateUniform(Render_RendererHan
 	};
 
 	TheForge_AddBuffer(renderer->renderer, &ubDesc, &buffer->buffer);
-	return buffer;
 
+	return handle;
 }
 
 
-AL2O3_EXTERN_C void Render_BufferDestroy(Render_RendererHandle renderer, Render_BufferHandle buffer) {
-	if (!renderer || !buffer) {
-		return;
-	}
+AL2O3_EXTERN_C void Render_BufferDestroy(Render_RendererHandle renderer, Render_BufferHandle handle) {
 
+	Render_Buffer* buffer = Render_BufferHandleToPtr(handle);
 	TheForge_RemoveBuffer(renderer->renderer, buffer->buffer);
-	MEMORY_FREE(buffer);
+	Render_BufferHandleRelease(handle);
+
 }
 
-AL2O3_EXTERN_C void Render_BufferUpload(Render_BufferHandle buffer, Render_BufferUpdateDesc const *update) {
+AL2O3_EXTERN_C void Render_BufferUpload(Render_BufferHandle handle, Render_BufferUpdateDesc const *update) {
+
+	Render_Buffer* buffer = Render_BufferHandleToPtr(handle);
 
 	TheForge_BufferUpdateDesc const tfUpdate{
 			buffer->buffer,

@@ -4,19 +4,20 @@
 #include "render_basics/theforge/api.h"
 #include "render_basics/api.h"
 #include "render_basics/pipeline.h"
-
-AL2O3_EXTERN_C Render_GraphicsPipelineHandle Render_GraphicsPipelineCreate(Render_RendererHandle renderer,
+#include "render_basics/theforge/handlemanager.h"
+#include "render_basics/theforge/api.h"
+AL2O3_EXTERN_C Render_PipelineHandle Render_GraphicsPipelineCreate(Render_RendererHandle renderer,
 																																					 Render_GraphicsPipelineDesc const *desc) {
 	TheForge_PipelineDesc pipelineDesc{};
 	pipelineDesc.type = TheForge_PT_GRAPHICS;
 	TheForge_GraphicsPipelineDesc &gfxPipeDesc = pipelineDesc.graphicsDesc;
 
-	gfxPipeDesc.shaderProgram = desc->shader;
-	gfxPipeDesc.rootSignature = desc->rootSignature;
+	gfxPipeDesc.shaderProgram = Render_ShaderHandleToPtr(desc->shader)->shader;
+	gfxPipeDesc.rootSignature = Render_RootSignatureHandleToPtr(desc->rootSignature)->signature;
 
-	gfxPipeDesc.rasterizerState = desc->rasteriserState;
-	gfxPipeDesc.blendState = desc->blendState;
-	gfxPipeDesc.depthState = desc->depthState;
+	gfxPipeDesc.rasterizerState = Render_RasteriserStateHandleToPtr(desc->rasteriserState)->state;
+	gfxPipeDesc.blendState = Render_BlendStateHandleToPtr(desc->blendState)->state;
+	gfxPipeDesc.depthState = Render_DepthStateHandleToPtr(desc->depthState)->state;
 	gfxPipeDesc.depthStencilFormat = desc->depthStencilFormat;
 
 	gfxPipeDesc.renderTargetCount = desc->colourRenderTargetCount;
@@ -27,38 +28,43 @@ AL2O3_EXTERN_C Render_GraphicsPipelineHandle Render_GraphicsPipelineCreate(Rende
 	gfxPipeDesc.pVertexLayout = desc->vertexLayout;
 	gfxPipeDesc.primitiveTopo = (TheForge_PrimitiveTopology) desc->primitiveTopo;
 
-	Render_GraphicsPipelineHandle pipeline = nullptr;
-	TheForge_AddPipeline(renderer->renderer, &pipelineDesc, &pipeline);
-	return pipeline;
+	Render_PipelineHandle handle = Render_PipelineHandleAlloc();
+	Render_Pipeline* pipeline = Render_PipelineHandleToPtr(handle);
+	TheForge_AddPipeline(renderer->renderer, &pipelineDesc, &pipeline->pipeline);
+	if(!pipeline->pipeline) {
+		Render_PipelineHandleRelease(handle);
+		return { Handle_InvalidDynamicHandle32 };
+	}
+	return handle;
 }
 
-AL2O3_EXTERN_C Render_ComputePipelineHandle Render_ComputePipelineCreate(Render_RendererHandle renderer,
+AL2O3_EXTERN_C Render_PipelineHandle Render_ComputePipelineCreate(Render_RendererHandle renderer,
 																																				 Render_ComputePipelineDesc const *desc) {
 	TheForge_PipelineDesc pipelineDesc{};
 	pipelineDesc.type = TheForge_PT_COMPUTE;
 	TheForge_GraphicsPipelineDesc &gfxPipeDesc = pipelineDesc.graphicsDesc;
 
-	gfxPipeDesc.shaderProgram = desc->shader;
-	gfxPipeDesc.rootSignature = desc->rootSignature;
+	gfxPipeDesc.shaderProgram = Render_ShaderHandleToPtr(desc->shader)->shader;
+	gfxPipeDesc.rootSignature = Render_RootSignatureHandleToPtr(desc->rootSignature)->signature;
 
-	Render_ComputePipelineHandle pipeline = nullptr;
-	TheForge_AddPipeline(renderer->renderer, &pipelineDesc, &pipeline);
-	return pipeline;
-}
-
-AL2O3_EXTERN_C void Render_GraphicsPipelineDestroy(Render_RendererHandle renderer,
-																									 Render_GraphicsPipelineHandle pipeline) {
-	if (!renderer || !pipeline) {
-		return;
+	Render_PipelineHandle handle = Render_PipelineHandleAlloc();
+	Render_Pipeline* pipeline = Render_PipelineHandleToPtr(handle);
+	TheForge_AddPipeline(renderer->renderer, &pipelineDesc, &pipeline->pipeline);
+	if(!pipeline->pipeline) {
+		Render_PipelineHandleRelease(handle);
+		return { Handle_InvalidDynamicHandle32 };
 	}
 
-	TheForge_RemovePipeline(renderer->renderer, pipeline);
+	return handle;
 }
-AL2O3_EXTERN_C void Render_CpmputePipelineDestroy(Render_RendererHandle renderer,
-																									Render_ComputePipelineHandle pipeline) {
-	if (!renderer || !pipeline) {
+
+AL2O3_EXTERN_C void Render_PipelineDestroy(Render_RendererHandle renderer,
+																									 Render_PipelineHandle handle) {
+	if (!renderer || !handle.handle) {
 		return;
 	}
+	Render_Pipeline* pipeline = Render_PipelineHandleToPtr(handle);
 
-	TheForge_RemovePipeline(renderer->renderer, pipeline);
+	TheForge_RemovePipeline(renderer->renderer, pipeline->pipeline);
+	Render_PipelineHandleRelease(handle);
 }

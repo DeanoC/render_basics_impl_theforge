@@ -3,12 +3,13 @@
 #include "gfx_theforge/theforge.h"
 
 #include "render_basics/theforge/api.h"
+#include "render_basics/theforge/handlemanager.h"
 #include "render_basics/api.h"
 
 AL2O3_EXTERN_C Render_BlendStateHandle Render_GetStockBlendState(Render_RendererHandle renderer,
 																																 Render_StockBlendStateType stock) {
 
-	if (renderer->stockBlendState[stock] != nullptr) {
+	if (Render_BlendStateHandleIsValid(renderer->stockBlendState[stock])) {
 		return renderer->stockBlendState[stock];
 	}
 
@@ -78,16 +79,19 @@ AL2O3_EXTERN_C Render_BlendStateHandle Render_GetStockBlendState(Render_Renderer
 		}
 
 		default: ASSERT(false);
-			return nullptr;
+			return {Handle_InvalidDynamicHandle32};
 	}
 
-	TheForge_AddBlendState(renderer->renderer, blendDesc, &renderer->stockBlendState[stock]);
+	renderer->stockBlendState[stock] = Render_BlendStateHandleAlloc();
+	Render_BlendState *bs = Render_BlendStateHandleToPtr(renderer->stockBlendState[stock]);
+
+	TheForge_AddBlendState(renderer->renderer, blendDesc, &bs->state);
 	return renderer->stockBlendState[stock];
 
 }
 AL2O3_EXTERN_C Render_DepthStateHandle Render_GetStockDepthState(Render_RendererHandle renderer,
 																																 Render_StockDepthStateType stock) {
-	if (renderer->stockDepthState[stock] != nullptr) {
+	if (Render_DepthStateHandleIsValid(renderer->stockDepthState[stock])) {
 		return renderer->stockDepthState[stock];
 	}
 
@@ -143,18 +147,21 @@ AL2O3_EXTERN_C Render_DepthStateHandle Render_GetStockDepthState(Render_Renderer
 		}
 
 		default: ASSERT(false);
-			return nullptr;
+			return {Handle_InvalidDynamicHandle32};
 	}
 
-	TheForge_AddDepthState(renderer->renderer, depthDesc, &renderer->stockDepthState[stock]);
+	renderer->stockDepthState[stock] = Render_DepthStateHandleAlloc();
+	Render_DepthState *ds = Render_DepthStateHandleToPtr(renderer->stockDepthState[stock]);
+
+	TheForge_AddDepthState(renderer->renderer, depthDesc, &ds->state);
 	return renderer->stockDepthState[stock];
 
 }
 
 AL2O3_EXTERN_C Render_RasteriserStateHandle Render_GetStockRasterisationState(Render_RendererHandle renderer,
 																																							Render_StockRasterState stock) {
-	if (renderer->stockRasterState[stock] != nullptr) {
-		return renderer->stockRasterState[stock];
+	if (Render_RasteriserStateHandleIsValid(renderer->stockRasteriserState[stock])) {
+		return renderer->stockRasteriserState[stock];
 	}
 
 	TheForge_RasterizerStateDesc const *rasterizerStateDesc;
@@ -198,17 +205,20 @@ AL2O3_EXTERN_C Render_RasteriserStateHandle Render_GetStockRasterisationState(Re
 		}
 
 		default: ASSERT(false);
-			return nullptr;
+			return {Handle_InvalidDynamicHandle32};
 	}
 
-	TheForge_AddRasterizerState(renderer->renderer, rasterizerStateDesc, &renderer->stockRasterState[stock]);
-	return renderer->stockRasterState[stock];
+	renderer->stockRasteriserState[stock] = Render_RasteriserStateHandleAlloc();
+	Render_RasteriserState *rs = Render_RasteriserStateHandleToPtr(renderer->stockRasteriserState[stock]);
+
+	TheForge_AddRasterizerState(renderer->renderer, rasterizerStateDesc, &rs->state);
+	return renderer->stockRasteriserState[stock];
 
 }
 
 AL2O3_EXTERN_C Render_SamplerHandle Render_GetStockSampler(Render_RendererHandle renderer,
 																													 Render_StockSamplerType stock) {
-	if (renderer->stockSamplers[stock] != nullptr) {
+	if (Render_SamplerHandleIsValid(renderer->stockSamplers[stock])) {
 		return renderer->stockSamplers[stock];
 	}
 
@@ -239,10 +249,13 @@ AL2O3_EXTERN_C Render_SamplerHandle Render_GetStockSampler(Render_RendererHandle
 			break;
 		}
 		default: ASSERT(false);
-			return nullptr;
+			return {Handle_InvalidDynamicHandle32};
 	}
 
-	TheForge_AddSampler(renderer->renderer, samplerDesc, &renderer->stockSamplers[stock]);
+	renderer->stockSamplers[stock] = Render_SamplerHandleAlloc();
+	Render_Sampler* sampler = Render_SamplerHandleToPtr(renderer->stockSamplers[stock]);
+
+	TheForge_AddSampler(renderer->renderer, samplerDesc, &sampler->sampler);
 	return renderer->stockSamplers[stock];
 }
 

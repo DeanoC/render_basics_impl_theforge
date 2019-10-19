@@ -5,6 +5,7 @@
 #include "render_basics/framebuffer.h"
 #include "render_basics/graphicsencoder.h"
 #include "visdebug.hpp"
+#include "render_basics/theforge/handlemanager.h"
 
 struct Solid {
 	uint32_t startVertex;
@@ -27,7 +28,7 @@ enum class SolidType {
 struct RenderTF_PlatonicSolids {
 	Render_BufferHandle gpuVertexData;
 	Render_ShaderHandle shader;
-	Render_GraphicsPipelineHandle pipeline;
+	Render_PipelineHandle pipeline;
 
 	Solid solids[(int)SolidType::COUNT];
 };
@@ -101,12 +102,12 @@ static Render_ShaderHandle CreateShaders(RenderTF_VisualDebug *vd) {
 
 	VFile_Handle vfile = VFile_FromMemory(VertexShader, strlen(VertexShader) + 1, false);
 	if (!vfile) {
-		return nullptr;
+		return {Handle_InvalidDynamicHandle32};
 	}
 	VFile_Handle ffile = VFile_FromMemory(FragmentShader, strlen(FragmentShader) + 1, false);
 	if (!ffile) {
 		VFile_Close(vfile);
-		return nullptr;
+		return {Handle_InvalidDynamicHandle32};
 	}
 	auto shader = Render_CreateShaderFromVFile(vd->renderer, vfile, "VS_main", ffile, "FS_main");
 
@@ -440,7 +441,7 @@ bool RenderTF_PlatonicSolidsCreate(RenderTF_VisualDebug *vd) {
 	RenderTF_PlatonicSolids *ps = vd->platonicSolids;
 
 	ps->shader = CreateShaders(vd);
-	if(!ps->shader) {
+	if(!Render_ShaderHandleIsValid(ps->shader)) {
 		RenderTF_PlatonicSolidsDestroy(vd);
 		return false;
 	}
@@ -473,7 +474,7 @@ bool RenderTF_PlatonicSolidsCreate(RenderTF_VisualDebug *vd) {
 	platonicPipeDesc.sampleQuality = 0;
 	platonicPipeDesc.primitiveTopo = Render_PT_TRI_LIST;
 	ps->pipeline = Render_GraphicsPipelineCreate(vd->renderer, &platonicPipeDesc);
-	if (!ps->pipeline) {
+	if (!Render_PipelineHandleIsValid(ps->pipeline)) {
 		RenderTF_PlatonicSolidsDestroy(vd);
 		return false;
 	}
@@ -510,7 +511,7 @@ bool RenderTF_PlatonicSolidsCreate(RenderTF_VisualDebug *vd) {
 	};
 
 	ps->gpuVertexData = Render_BufferCreateVertex(vd->renderer, &vbDesc);
-	if (!ps->gpuVertexData) {
+	if (!Render_BufferHandleIsValid(ps->gpuVertexData)) {
 		RenderTF_PlatonicSolidsDestroy(vd);
 		return false;
 	}
@@ -536,21 +537,21 @@ void RenderTF_PlatonicSolidsDestroy(RenderTF_VisualDebug *vd) {
 	RenderTF_PlatonicSolids *ps = vd->platonicSolids;
 
 	for(auto i=0;i < (int)SolidType::COUNT;++i) {
-		if(ps->solids[i].gpuInstanceData) {
+		if(Render_BufferHandleIsValid(ps->solids[i].gpuInstanceData)) {
 			Render_BufferDestroy(vd->renderer, ps->solids[i].gpuInstanceData);
 		}
 		CADT_VectorDestroy(ps->solids[i].instanceData);
 	}
 
-	if (ps->shader) {
+	if (Render_ShaderHandleIsValid(ps->shader)) {
 		Render_ShaderDestroy(vd->renderer, ps->shader);
 	}
 
-	if (ps->pipeline) {
-		Render_GraphicsPipelineDestroy(vd->renderer, ps->pipeline);
+	if (Render_PipelineHandleIsValid(ps->pipeline)) {
+		Render_PipelineDestroy(vd->renderer, ps->pipeline);
 	}
 
-	if (ps->gpuVertexData) {
+	if (Render_BufferHandleIsValid(ps->gpuVertexData)) {
 		Render_BufferDestroy(vd->renderer, ps->gpuVertexData);
 	}
 
@@ -571,7 +572,7 @@ void RenderTF_PlatonicSolidsRender(RenderTF_VisualDebug *vd, Render_GraphicsEnco
 		Solid * solid = &ps->solids[i];
 		uint32_t count = (uint32_t) CADT_VectorSize(solid->instanceData);
 		if( count > solid->gpuCount) {
-			if(solid->gpuInstanceData) {
+			if(Render_BufferHandleIsValid(solid->gpuInstanceData)) {
 				Render_BufferDestroy(vd->renderer, solid->gpuInstanceData);
 			}
 

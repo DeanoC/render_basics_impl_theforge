@@ -1,5 +1,8 @@
+#include <render_basics/theforge/handlemanager.h>
+#include <render_basics/api.h>
 #include "al2o3_platform/platform.h"
 #include "al2o3_memory/memory.h"
+#include "al2o3_handle/dynamic.h"
 #include "gfx_theforge/theforge.h"
 #include "tiny_imageformat/tinyimageformat_query.h"
 #include "gfx_imgui_al2o3_theforge_bindings/bindings.h"
@@ -16,17 +19,17 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 		Render_FrameBufferDesc const *desc) {
 	ASSERT(desc->frameBufferWidth);
 	ASSERT(desc->frameBufferHeight);
-	ASSERT(desc->queue);
-	ASSERT(desc->commandPool);
-	ASSERT( desc->platformHandle);
+	ASSERT(desc->queue.handle != Handle_InvalidDynamicHandle32);
+	ASSERT(desc->platformHandle);
 
 	auto tfrenderer = (TheForge_RendererHandle) renderer->renderer;
 
-	auto fb = (Render_FrameBuffer *) MEMORY_CALLOC(1, sizeof(Render_FrameBuffer));
+	Render_FrameBufferHandle fbHandle = Render_FrameBufferHandleAlloc();
+	Render_FrameBuffer* fb = Render_FrameBufferHandleToPtr(fbHandle);
 
 	fb->renderer = renderer;
-	fb->commandPool = (TheForge_CmdPoolHandle) desc->commandPool;
-	fb->presentQueue = (TheForge_QueueHandle) desc->queue;
+	fb->commandPool = renderer->graphicsCmdPool;
+	fb->presentQueue = desc->queue;
 	fb->frameBufferCount = renderer->maxFramesAhead;
 	fb->platformHandle = desc->platformHandle;
 
@@ -40,13 +43,13 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 	}
 	TheForge_AddSemaphore(tfrenderer, &fb->imageAcquiredSemaphore);
 
-	TheForge_AddCmd_n((TheForge_CmdPoolHandle) desc->commandPool, false, fb->frameBufferCount, &fb->frameCmds);
+	TheForge_AddCmd_n( fb->commandPool, false, fb->frameBufferCount, &fb->frameCmds);
 
 	TheForge_WindowsDesc windowDesc;
 	memset(&windowDesc, 0, sizeof(TheForge_WindowsDesc));
 	windowDesc.handle = desc->platformHandle;
 
-	TheForge_QueueHandle qs[] = {(TheForge_QueueHandle) desc->queue};
+	TheForge_QueueHandle qs[] = {Render_QueueHandleToPtr(desc->queue)->queue};
 	TheForge_SwapChainDesc swapChainDesc;
 	swapChainDesc.pWindow = &windowDesc;
 	swapChainDesc.presentQueueCount = 1;
@@ -73,17 +76,24 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 	fb->entireViewport.w = (float) desc->frameBufferHeight;
 
 	if (desc->visualDebugTarget) {
-		fb->visualDebug = RenderTF_VisualDebugCreate(fb);
+		fb->visualDebug = RenderTF_VisualDebugCreate(renderer, fbHandle);
 		fb->debugGpuView = (Render_GpuView *) MEMORY_CALLOC(1, sizeof(Render_GpuView));
 	}
 
 	if (desc->embeddedImgui) {
+		// insure they have been created
+		auto samplerHandle = Render_GetStockSampler(renderer, Render_SST_LINEAR);
+		auto blendHandle = Render_GetStockBlendState(renderer, Render_SBS_PORTER_DUFF);
+		auto depthHandle = Render_GetStockDepthState(renderer, Render_SDS_IGNORE);
+		auto rasterHandle = Render_GetStockRasterisationState(renderer, Render_SRS_NOCULL);
+		auto vertexHandle = Render_GetStockVertexLayout(renderer, Render_SVL_2D_COLOUR_UV);
+
 		ImguiBindings_Shared shared = {
-				Render_GetStockSampler(renderer, Render_SST_LINEAR),
-				Render_GetStockBlendState(renderer, Render_SBS_PORTER_DUFF),
-				Render_GetStockDepthState(renderer, Render_SDS_IGNORE),
-				Render_GetStockRasterisationState(renderer, Render_SRS_NOCULL),
-				Render_GetStockVertexLayout(renderer, Render_SVL_2D_COLOUR_UV)
+				Render_SamplerHandleToPtr(samplerHandle)->sampler,
+				Render_BlendStateHandleToPtr(blendHandle)->state,
+				Render_DepthStateHandleToPtr(depthHandle)->state,
+				Render_RasteriserStateHandleToPtr(rasterHandle)->state,
+				(TheForge_VertexLayout const *)vertexHandle
 		};
 		fb->imguiBindings = ImguiBindings_Create(tfrenderer,
 																						 renderer->shaderCompiler,
@@ -101,49 +111,54 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 		}
 	}
 
-	return fb;
+	fb->currentColourTarget = Render_TextureHandleAlloc();
+	fb->graphicsEncoder = Render_GraphicsEncoderHandleAlloc();
+	return fbHandle;
 }
 
 
-AL2O3_EXTERN_C void Render_FrameBufferDestroy(Render_RendererHandle handle, Render_FrameBufferHandle ctx) {
-	if (!ctx) {
-		return;
+AL2O3_EXTERN_C void Render_FrameBufferDestroy(Render_RendererHandle renderer, Render_FrameBufferHandle handle) {
+
+	Render_FrameBuffer* frameBuffer = Render_FrameBufferHandleToPtr(handle);
+
+	Render_GraphicsEncoderHandleRelease(frameBuffer->graphicsEncoder);
+	Render_TextureHandleRelease(frameBuffer->currentColourTarget);
+
+	if (frameBuffer->visualDebug) {
+		MEMORY_FREE(frameBuffer->debugGpuView);
+		RenderTF_VisualDebugDestroy(frameBuffer->visualDebug);
 	}
 
-	ASSERT(handle == ctx->renderer);
-
-	auto renderer = handle->renderer;
-
-	if (ctx->visualDebug) {
-		MEMORY_FREE(ctx->debugGpuView);
-		RenderTF_VisualDebugDestroy(ctx->visualDebug);
+	if (frameBuffer->imguiBindings) {
+		ImguiBindings_Destroy(frameBuffer->imguiBindings);
 	}
 
-	if (ctx->imguiBindings) {
-		ImguiBindings_Destroy(ctx->imguiBindings);
+	if (frameBuffer->swapChain) {
+		TheForge_RemoveSwapChain(renderer->renderer, frameBuffer->swapChain);
 	}
 
-	if (ctx->swapChain) {
-		TheForge_RemoveSwapChain(renderer, ctx->swapChain);
+	TheForge_RemoveCmd_n(frameBuffer->commandPool, frameBuffer->frameBufferCount, frameBuffer->frameCmds);
+
+	TheForge_RemoveSemaphore(renderer->renderer, frameBuffer->imageAcquiredSemaphore);
+
+	for (uint32_t i = 0; i < frameBuffer->frameBufferCount; ++i) {
+		TheForge_RemoveFence(renderer->renderer, frameBuffer->renderCompleteFences[i]);
+		TheForge_RemoveSemaphore(renderer->renderer, frameBuffer->renderCompleteSemaphores[i]);
 	}
 
-	TheForge_RemoveCmd_n(ctx->commandPool, ctx->frameBufferCount, ctx->frameCmds);
 
-	TheForge_RemoveSemaphore(renderer, ctx->imageAcquiredSemaphore);
+	MEMORY_FREE(frameBuffer->renderCompleteFences);
+	MEMORY_FREE(frameBuffer->renderCompleteSemaphores);
 
-	for (uint32_t i = 0; i < ctx->frameBufferCount; ++i) {
-		TheForge_RemoveFence(renderer, ctx->renderCompleteFences[i]);
-		TheForge_RemoveSemaphore(renderer, ctx->renderCompleteSemaphores[i]);
-	}
-
-	MEMORY_FREE(ctx->renderCompleteFences);
-	MEMORY_FREE(ctx->renderCompleteSemaphores);
-	MEMORY_FREE(ctx);
+	Render_FrameBufferHandleRelease(handle);
 
 }
-AL2O3_EXTERN_C void Render_FrameBufferResize(Render_FrameBufferHandle frameBuffer, uint32_t width, uint32_t height) {
+AL2O3_EXTERN_C void Render_FrameBufferResize(Render_FrameBufferHandle handle, uint32_t width, uint32_t height) {
 
 	TheForge_FlushResourceUpdates();
+
+	Render_FrameBuffer* frameBuffer = Render_FrameBufferHandleToPtr(handle);
+
 	Render_QueueWaitIdle(frameBuffer->presentQueue);
 
 	if(frameBuffer->swapChain) {
@@ -151,7 +166,7 @@ AL2O3_EXTERN_C void Render_FrameBufferResize(Render_FrameBufferHandle frameBuffe
 		frameBuffer->swapChain = nullptr;
 	}
 
-	TheForge_QueueHandle qs[] = {(TheForge_QueueHandle) frameBuffer->presentQueue};
+	TheForge_QueueHandle qs[] = { Render_QueueHandleToPtr(frameBuffer->presentQueue)->queue };
 	TheForge_SwapChainDesc swapChainDesc;
 	TheForge_WindowsDesc windowDesc;
 	memset(&windowDesc, 0, sizeof(TheForge_WindowsDesc));
@@ -178,19 +193,20 @@ AL2O3_EXTERN_C void Render_FrameBufferResize(Render_FrameBufferHandle frameBuffe
 	if (frameBuffer->imguiBindings) {
 		ImguiBindings_SetWindowSize(frameBuffer->imguiBindings, width, height);
 	}
-
 }
 
-AL2O3_EXTERN_C void Render_FrameBufferNewFrame(Render_FrameBufferHandle ctx) {
+AL2O3_EXTERN_C void Render_FrameBufferNewFrame(Render_FrameBufferHandle handle) {
 
-	auto renderer = (TheForge_RendererHandle) ctx->renderer->renderer;
+	Render_FrameBuffer* frameBuffer = Render_FrameBufferHandleToPtr(handle);
+
+	auto renderer = (TheForge_RendererHandle) frameBuffer->renderer->renderer;
 
 	uint32_t frameIndex;
-	TheForge_AcquireNextImage(renderer, ctx->swapChain, ctx->imageAcquiredSemaphore, nullptr, &frameIndex);
-	Render_RendererSetFrameIndex(ctx->renderer, frameIndex);
+	TheForge_AcquireNextImage(renderer, frameBuffer->swapChain, frameBuffer->imageAcquiredSemaphore, nullptr, &frameIndex);
+	Render_RendererSetFrameIndex(frameBuffer->renderer, frameIndex);
 
-	TheForge_SemaphoreHandle renderCompleteSemaphore = ctx->renderCompleteSemaphores[frameIndex];
-	TheForge_FenceHandle renderCompleteFence = ctx->renderCompleteFences[frameIndex];
+	TheForge_SemaphoreHandle renderCompleteSemaphore = frameBuffer->renderCompleteSemaphores[frameIndex];
+	TheForge_FenceHandle renderCompleteFence = frameBuffer->renderCompleteFences[frameIndex];
 
 	// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 	TheForge_FenceStatus fenceStatus;
@@ -199,54 +215,43 @@ AL2O3_EXTERN_C void Render_FrameBufferNewFrame(Render_FrameBufferHandle ctx) {
 		TheForge_WaitForFences(renderer, 1, &renderCompleteFence);
 	}
 
-	ctx->currentCmd = ctx->frameCmds[frameIndex];
-	ctx->currentColourTarget.renderTarget = TheForge_SwapChainGetRenderTarget(ctx->swapChain, frameIndex);
-	ctx->currentColourTarget.texture = TheForge_RenderTargetGetTexture(ctx->currentColourTarget.renderTarget);
-	ctx->graphicsEncoder.cmd = ctx->currentCmd;
-	ctx->graphicsEncoder.view = Render_View{};
+	Render_Texture *tex = Render_TextureHandleToPtr(frameBuffer->currentColourTarget);
+	tex->renderTarget = TheForge_SwapChainGetRenderTarget(frameBuffer->swapChain, frameIndex);
+	tex->texture = TheForge_RenderTargetGetTexture(tex->renderTarget);
+	Render_GraphicsEncoder* encoder = Render_GraphicsEncoderHandleToPtr(frameBuffer->graphicsEncoder);
 
-	TheForge_BeginCmd(ctx->currentCmd);
+	encoder->cmd = frameBuffer->frameCmds[frameIndex];
+	encoder->view = Render_View{};
+
+	TheForge_BeginCmd(encoder->cmd);
 
 	// insert write barrier for render target if we are more the N frames ahead
 	Render_TextureTransitionType const textureTransitions[] = { Render_TTT_RENDER_TARGET};
-	Render_TextureHandle textures[] = { &ctx->currentColourTarget };
+	Render_TextureHandle textures[] = { frameBuffer->currentColourTarget };
 
-	Render_GraphicsEncoderTransition(&ctx->graphicsEncoder, 0, nullptr, nullptr,
+	Render_GraphicsEncoderTransition(frameBuffer->graphicsEncoder,
+			0, nullptr, nullptr,
 																	 1, textures, textureTransitions);
 
-	if (ctx->visualDebug || ctx->imguiBindings) {
+	if (frameBuffer->visualDebug || frameBuffer->imguiBindings) {
 		// ensure the buffer is cleared if we used visual debug or imgui bindings
-		Render_GraphicsEncoderBindRenderTargets(&ctx->graphicsEncoder,
+		Render_GraphicsEncoderBindRenderTargets(frameBuffer->graphicsEncoder,
 																						1,
 																						textures,
 																						true,
 																						true,
 																						true);
 	}
-
 }
 
-AL2O3_EXTERN_C ImguiBindings_ContextHandle Render_FrameBufferCreateImguiBindings(
-		Render_RendererHandle renderer,
-		Render_FrameBufferHandle frameBuffer,
-		InputBasic_ContextHandle input) {
-	if (!renderer || !frameBuffer) {
-		return nullptr;
-	}
+AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle handle) {
+	Render_FrameBuffer* frameBuffer = Render_FrameBufferHandleToPtr(handle);
 
-	return frameBuffer->imguiBindings;
-}
+	auto frameIndex = frameBuffer->renderer->frameIndex;
 
-AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
-	if (!ctx) {
-		return;
-	}
-	auto renderer = (TheForge_RendererHandle) ctx->renderer->renderer;
-	auto frameIndex = ctx->renderer->frameIndex;
-
-	if (ctx->visualDebug || ctx->imguiBindings) {
-		Render_TextureHandle renderTargets[] = { &ctx->currentColourTarget};
-		Render_GraphicsEncoderBindRenderTargets(&ctx->graphicsEncoder,
+	if (frameBuffer->visualDebug || frameBuffer->imguiBindings) {
+		Render_TextureHandle renderTargets[] = { frameBuffer->currentColourTarget};
+		Render_GraphicsEncoderBindRenderTargets(frameBuffer->graphicsEncoder,
 																						1,
 																						renderTargets,
 																						false,
@@ -254,78 +259,73 @@ AL2O3_EXTERN_C void Render_FrameBufferPresent(Render_FrameBufferHandle ctx) {
 																						true);
 	}
 
-	if (ctx->visualDebug) {
-		RenderTF_VisualDebugRender(ctx->visualDebug, &ctx->graphicsEncoder);
+	if (frameBuffer->visualDebug) {
+		RenderTF_VisualDebugRender(frameBuffer->visualDebug, frameBuffer->graphicsEncoder);
 	}
 
-	if (ctx->imguiBindings) {
-		ImguiBindings_Render(ctx->imguiBindings, ctx->currentCmd);
+	Render_GraphicsEncoder* encoder = Render_GraphicsEncoderHandleToPtr(frameBuffer->graphicsEncoder);
+
+	if (frameBuffer->imguiBindings) {
+		ImguiBindings_Render(frameBuffer->imguiBindings, encoder->cmd);
 	}
 
-	Render_GraphicsEncoderBindRenderTargets(&ctx->graphicsEncoder, 0, nullptr, false, false, false);
+	Render_GraphicsEncoderBindRenderTargets(frameBuffer->graphicsEncoder, 0, nullptr, false, false, false);
 
-	Render_TextureHandle textures[] = {&ctx->currentColourTarget};
+	Render_TextureHandle textures[] = {frameBuffer->currentColourTarget};
 	Render_TextureTransitionType textureTransitions[] = {Render_TTT_PRESENT};
-	Render_GraphicsEncoderTransition(&ctx->graphicsEncoder, 0, nullptr, nullptr, 1, textures, textureTransitions);
+	Render_GraphicsEncoderTransition(frameBuffer->graphicsEncoder, 0, nullptr, nullptr, 1, textures, textureTransitions);
 
-	TheForge_EndCmd(ctx->currentCmd);
+	TheForge_EndCmd(encoder->cmd);
 
-	TheForge_QueueSubmit(ctx->presentQueue,
+	Render_Queue* queue = Render_QueueHandleToPtr(frameBuffer->presentQueue);
+	TheForge_QueueSubmit(queue->queue,
 											 1,
-											 &ctx->currentCmd,
-											 ctx->renderCompleteFences[frameIndex],
+											 &encoder->cmd,
+											 frameBuffer->renderCompleteFences[frameIndex],
 											 1,
-											 &ctx->imageAcquiredSemaphore,
+											 &frameBuffer->imageAcquiredSemaphore,
 											 1,
-											 &ctx->renderCompleteSemaphores[frameIndex]);
+											 &frameBuffer->renderCompleteSemaphores[frameIndex]);
 
-	TheForge_QueuePresent(ctx->presentQueue,
-												ctx->swapChain,
-												ctx->renderer->frameIndex,
+	TheForge_QueuePresent(queue->queue,
+												frameBuffer->swapChain,
+												frameIndex,
 												1,
-												&ctx->renderCompleteSemaphores[frameIndex]);
+												&frameBuffer->renderCompleteSemaphores[frameIndex]);
 
 }
 
-AL2O3_EXTERN_C void Render_FrameBufferUpdate(Render_FrameBufferHandle frameBuffer,
+AL2O3_EXTERN_C void Render_FrameBufferUpdate(Render_FrameBufferHandle handle,
 																						 uint32_t width,
 																						 uint32_t height,
 																						 double deltaMS) {
-	if (!frameBuffer || !frameBuffer->imguiBindings) {
+	Render_FrameBuffer* frameBuffer = Render_FrameBufferHandleToPtr(handle);
+
+	if (!frameBuffer->imguiBindings) {
 		return;
 	}
 
 	ImguiBindings_UpdateInput(frameBuffer->imguiBindings, deltaMS);
 }
-AL2O3_EXTERN_C Render_TextureHandle Render_FrameBufferColourTarget(Render_FrameBufferHandle frameBuffer) {
-	return &frameBuffer->currentColourTarget;
+AL2O3_EXTERN_C Render_TextureHandle Render_FrameBufferColourTarget(Render_FrameBufferHandle handle) {
+	Render_FrameBuffer* frameBuffer = Render_FrameBufferHandleToPtr(handle);
+	return frameBuffer->currentColourTarget;
 }
 
 
-AL2O3_EXTERN_C Render_GraphicsEncoderHandle Render_FrameBufferGraphicsEncoder(Render_FrameBufferHandle frameBuffer) {
-	return &frameBuffer->graphicsEncoder;
+AL2O3_EXTERN_C Render_GraphicsEncoderHandle Render_FrameBufferGraphicsEncoder(Render_FrameBufferHandle handle) {
+	Render_FrameBuffer* frameBuffer = Render_FrameBufferHandleToPtr(handle);
+	return frameBuffer->graphicsEncoder;
 }
 
-AL2O3_EXTERN_C TinyImageFormat Render_FrameBufferColourFormat(Render_FrameBufferHandle ctx) {
-	if (!ctx) {
-		return TinyImageFormat_UNDEFINED;
-	}
-
-	return ctx->colourBufferFormat;
+AL2O3_EXTERN_C TinyImageFormat Render_FrameBufferColourFormat(Render_FrameBufferHandle handle) {
+	Render_FrameBuffer* frameBuffer = Render_FrameBufferHandleToPtr(handle);
+	return frameBuffer->colourBufferFormat;
 }
 
-AL2O3_EXTERN_C float const *Render_FrameBufferImguiScaleOffsetMatrix(Render_FrameBufferHandle frameBuffer) {
-	if (frameBuffer->imguiBindings) {
-		return ImguiBindings_GetScaleOffsetMatrix(frameBuffer->imguiBindings);
-	} else {
-		return nullptr;
-	}
-}
 
-AL2O3_EXTERN_C void Render_SetFrameBufferDebugView(Render_FrameBufferHandle frameBuffer, Render_View const *view) {
-	if (!frameBuffer && !frameBuffer->debugGpuView) {
-		return;
-	}
+AL2O3_EXTERN_C void Render_SetFrameBufferDebugView(Render_FrameBufferHandle handle, Render_View const *view) {
+	Render_FrameBuffer* frameBuffer = Render_FrameBufferHandleToPtr(handle);
 
 	frameBuffer->debugGpuView->worldToViewMatrix =	Math_LookAtMat4F(view->position, view->lookAt, view->upVector);
 
@@ -338,15 +338,18 @@ AL2O3_EXTERN_C void Render_SetFrameBufferDebugView(Render_FrameBufferHandle fram
 	};
 
 	frameBuffer->debugGpuView->worldToNDCMatrix = Math_MultiplyMat4F(frameBuffer->debugGpuView->worldToViewMatrix, frameBuffer->debugGpuView->viewToNDCMatrix);
-
 }
 
-AL2O3_EXTERN_C Math_Vec4F Render_FrameBufferEntireViewport(Render_FrameBufferHandle frameBuffer) {
+AL2O3_EXTERN_C Math_Vec4F Render_FrameBufferEntireViewport(Render_FrameBufferHandle handle) {
+	Render_FrameBuffer* frameBuffer = Render_FrameBufferHandleToPtr(handle);
+
 	ASSERT(frameBuffer->entireViewport.z > 0);
 	ASSERT(frameBuffer->entireViewport.w > 0);
 	return frameBuffer->entireViewport;
 }
-AL2O3_EXTERN_C Math_Vec4U32 Render_FrameBufferEntireScissor(Render_FrameBufferHandle frameBuffer) {
+AL2O3_EXTERN_C Math_Vec4U32 Render_FrameBufferEntireScissor(Render_FrameBufferHandle handle) {
+	Render_FrameBuffer* frameBuffer = Render_FrameBufferHandleToPtr(handle);
+
 	ASSERT(frameBuffer->entireScissor.z > 0);
 	ASSERT(frameBuffer->entireScissor.w > 0);
 	return frameBuffer->entireScissor;

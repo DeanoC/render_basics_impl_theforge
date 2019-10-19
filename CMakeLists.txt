@@ -44,6 +44,7 @@ set(Src
 
 set(Deps
 		al2o3_platform
+		al2o3_handle
 		al2o3_cadt
 		al2o3_os
 		render_basics_interface

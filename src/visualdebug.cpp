@@ -1,9 +1,10 @@
-#include <cstdint>
 #include "al2o3_platform/platform.h"
 #include "al2o3_memory/memory.h"
+#include "al2o3_handle/dynamic.h"
 #include "al2o3_platform/visualdebug.h"
-#include "al2o3_os/thread.hpp"
+#include "al2o3_thread/thread.hpp"
 #include "render_basics/theforge/api.h"
+#include "render_basics/theforge/handlemanager.h"
 #include "render_basics/buffer.h"
 #include "render_basics/descriptorset.h"
 #include "render_basics/framebuffer.h"
@@ -11,6 +12,7 @@
 #include "render_basics/pipeline.h"
 #include "render_basics/rootsignature.h"
 #include "visdebug.hpp"
+#include <cstdint>
 
 namespace {
 struct Vertex {
@@ -74,7 +76,7 @@ static bool CreateShaders(RenderTF_VisualDebug *vd) {
 	VFile_Close(vfile);
 	VFile_Close(ffile);
 
-	return vd->shader != nullptr;
+	return Render_ShaderHandleIsValid(vd->shader);
 }
 
 uint32_t PickVisibleColour(uint32_t primitiveId) {
@@ -109,7 +111,7 @@ void Line(float p0x, float p0y, float p0z, float p1x, float p1y, float p1z, uint
 			{p1x, p1y, p1z},
 			colour
 	};
-	Os::MutexLock lock(&currentTarget->addPrimMutex);
+	Thread::MutexLock lock(&currentTarget->addPrimMutex);
 
 	uint32_t i0 = (uint32_t) CADT_VectorPushElement(currentTarget->vertexData, &v0);
 	uint32_t i1 = (uint32_t) CADT_VectorPushElement(currentTarget->vertexData, &v1);
@@ -123,7 +125,7 @@ void Lines(uint32_t lineCount, float const * verts, uint32_t colour) {
 		LOGERROR("RenderTF_VisualDebug Line callback still hooked up after destruction!");
 		return;
 	}
-	Os::MutexLock lock(&currentTarget->addPrimMutex);
+	Thread::MutexLock lock(&currentTarget->addPrimMutex);
 
 	for (auto i = 0u; i < lineCount; ++i) {
 		Vertex v0 = {
@@ -154,7 +156,7 @@ void LineStrip(uint32_t lineCount, float const * verts, uint32_t colour) {
 			colour
 	};
 	verts += 3;
-	Os::MutexLock lock(&currentTarget->addPrimMutex);
+	Thread::MutexLock lock(&currentTarget->addPrimMutex);
 
 	uint32_t lastIndex = (uint32_t) CADT_VectorPushElement(currentTarget->vertexData, &lastVertex);
 	for (auto i = 0u; i < lineCount; ++i) {
@@ -178,7 +180,7 @@ void SolidTris(uint32_t triCount, float const * verts, uint32_t colour) {
 		LOGERROR("RenderTF_VisualDebug Line callback still hooked up after destruction!");
 		return;
 	}
-	Os::MutexLock lock(&currentTarget->addPrimMutex);
+	Thread::MutexLock lock(&currentTarget->addPrimMutex);
 
 	uint32_t const primId = (uint32_t)CADT_VectorSize(currentTarget->solidTriIndexData)/3;
 	for (auto i = 0u; i < triCount; ++i) {
@@ -217,7 +219,7 @@ void SolidQuads(uint32_t quadCount, float const * verts, uint32_t colour) {
 		LOGERROR("RenderTF_VisualDebug Line callback still hooked up after destruction!");
 		return;
 	}
-	Os::MutexLock lock(&currentTarget->addPrimMutex);
+	Thread::MutexLock lock(&currentTarget->addPrimMutex);
 
 	uint32_t const primId = (uint32_t)CADT_VectorSize(currentTarget->solidTriIndexData)/3;
 
@@ -274,7 +276,7 @@ void Tetrahedron(float const* pos, float const* eulerRots, float const* scale, u
 	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, rotateMatrix);
 	matrix = Math_MultiplyMat4F(matrix, scaleMatrix);
 
-	Os::MutexLock lock(&currentTarget->addPrimMutex);
+	Thread::MutexLock lock(&currentTarget->addPrimMutex);
 	RenderTF_PlatonicSolidsAddTetrahedron(currentTarget, matrix);
 }
 
@@ -291,7 +293,7 @@ void Cube(float const* pos, float const* eulerRots, float const* scale, uint32_t
 	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, rotateMatrix);
 	matrix = Math_MultiplyMat4F(matrix, scaleMatrix);
 
-	Os::MutexLock lock(&currentTarget->addPrimMutex);
+	Thread::MutexLock lock(&currentTarget->addPrimMutex);
 	RenderTF_PlatonicSolidsAddCube(currentTarget, matrix);
 }
 
@@ -308,7 +310,7 @@ void Octahedron(float const* pos, float const* eulerRots, float const* scale, ui
 	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, rotateMatrix);
 	matrix = Math_MultiplyMat4F(matrix, scaleMatrix);
 
-	Os::MutexLock lock(&currentTarget->addPrimMutex);
+	Thread::MutexLock lock(&currentTarget->addPrimMutex);
 	RenderTF_PlatonicSolidsAddOctahedron(currentTarget, matrix);
 }
 
@@ -325,7 +327,7 @@ void Icosahedron(float const* pos, float const* eulerRots, float const* scale, u
 	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, rotateMatrix);
 	matrix = Math_MultiplyMat4F(matrix, scaleMatrix);
 
-	Os::MutexLock lock(&currentTarget->addPrimMutex);
+	Thread::MutexLock lock(&currentTarget->addPrimMutex);
 	RenderTF_PlatonicSolidsAddIcosahedron(currentTarget, matrix);
 }
 
@@ -343,25 +345,25 @@ void Dodecahedron(float const* pos, float const* eulerRots, float const* scale, 
 	Math_Mat4F matrix = Math_MultiplyMat4F(translateMatrix, rotateMatrix);
 	matrix = Math_MultiplyMat4F(matrix, scaleMatrix);
 
-	Os::MutexLock lock(&currentTarget->addPrimMutex);
+	Thread::MutexLock lock(&currentTarget->addPrimMutex);
 	RenderTF_PlatonicSolidsAddDodecahedron(currentTarget, matrix);
 }
 
 } // end anon namespace
 
-RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target) {
+RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_RendererHandle renderer, Render_FrameBufferHandle target) {
 	auto *vd = (RenderTF_VisualDebug *) MEMORY_CALLOC(1, sizeof(RenderTF_VisualDebug));
 	if (!vd) {
 		return nullptr;
 	}
 	vd->target = target;
-	vd->renderer = target->renderer;
+	vd->renderer = renderer;
 
 	vd->vertexData = CADT_VectorCreate(sizeof(Vertex));
 	vd->lineIndexData = CADT_VectorCreate(sizeof(uint32_t));
 	vd->solidTriIndexData = CADT_VectorCreate(sizeof(uint32_t));
 
-	Os_MutexCreate(&vd->addPrimMutex);
+	Thread_MutexCreate(&vd->addPrimMutex);
 
 	if (currentTarget != nullptr) {
 		LOGWARNING("You should only have 1 framebuffer with visual debug target at any time");
@@ -375,8 +377,8 @@ RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target
 	rootSignatureDesc.shaderCount = 1;
 	rootSignatureDesc.shaders = shaders;
 	rootSignatureDesc.staticSamplerCount = 0;
-	vd->rootSignature = Render_RootSignatureCreate(vd->target->renderer, &rootSignatureDesc);
-	if (!vd->rootSignature) {
+	vd->rootSignature = Render_RootSignatureCreate(vd->renderer, &rootSignatureDesc);
+	if (!Render_RootSignatureHandleIsValid(vd->rootSignature)) {
 		return nullptr;
 	}
 
@@ -396,7 +398,7 @@ RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target
 	lineGfxPipeDesc.sampleQuality = 0;
 	lineGfxPipeDesc.primitiveTopo = Render_PT_LINE_LIST;
 	vd->linePipeline = Render_GraphicsPipelineCreate(vd->renderer, &lineGfxPipeDesc);
-	if (!vd->linePipeline) {
+	if (!Render_PipelineHandleIsValid(vd->linePipeline)) {
 		return nullptr;
 	}
 
@@ -414,7 +416,7 @@ RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target
 	solidTriGfxPipeDesc.sampleQuality = 0;
 	solidTriGfxPipeDesc.primitiveTopo = Render_PT_TRI_LIST;
 	vd->solidTriPipeline = Render_GraphicsPipelineCreate(vd->renderer, &solidTriGfxPipeDesc);
-	if (!vd->solidTriPipeline) {
+	if (!Render_PipelineHandleIsValid(vd->solidTriPipeline)) {
 		return nullptr;
 	}
 
@@ -425,7 +427,7 @@ RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target
 	};
 
 	vd->descriptorSet = Render_DescriptorSetCreate(vd->renderer, &setDesc);
-	if (!vd->descriptorSet) {
+	if (!Render_DescriptorSetHandleIsValid(vd->descriptorSet)) {
 		return nullptr;
 	}
 
@@ -435,7 +437,7 @@ RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target
 	};
 
 	vd->uniformBuffer = Render_BufferCreateUniform(vd->renderer, &ubDesc);
-	if (!vd->uniformBuffer) {
+	if (!Render_BufferHandleIsValid(vd->uniformBuffer)) {
 		return nullptr;
 	}
 	Render_DescriptorDesc params[1];
@@ -473,41 +475,38 @@ RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target
 void RenderTF_VisualDebugDestroy(RenderTF_VisualDebug *vd) {
 	RenderTF_PlatonicSolidsDestroy(vd);
 
-	if (vd->uniformBuffer) {
+	if (Render_BufferHandleIsValid(vd->uniformBuffer)) {
 		Render_BufferDestroy(vd->renderer, vd->uniformBuffer);
 	}
-	if (vd->descriptorSet) {
+	if (Render_DescriptorSetHandleIsValid(vd->descriptorSet)) {
 		Render_DescriptorSetDestroy(vd->renderer, vd->descriptorSet);
 	}
 
-	if (vd->linePipeline) {
-		Render_GraphicsPipelineDestroy(vd->renderer, vd->linePipeline);
+	if (Render_PipelineHandleIsValid(vd->linePipeline)) {
+		Render_PipelineDestroy(vd->renderer, vd->linePipeline);
 	}
-	if (vd->solidTriPipeline) {
-		Render_GraphicsPipelineDestroy(vd->renderer, vd->solidTriPipeline);
+	if (Render_PipelineHandleIsValid(vd->solidTriPipeline)) {
+		Render_PipelineDestroy(vd->renderer, vd->solidTriPipeline);
 	}
 
-	if (vd->rootSignature) {
+	if (Render_RootSignatureHandleIsValid(vd->rootSignature)) {
 		Render_RootSignatureDestroy(vd->renderer, vd->rootSignature);
 	}
 
-	if(vd->shader) {
-		Render_ShaderDestroy(vd->target->renderer, vd->shader);
+	if(Render_ShaderHandleIsValid(vd->shader)) {
+		Render_ShaderDestroy(vd->renderer, vd->shader);
 	}
 
-	if (vd->gpuSolidTriIndexData) {
-		Render_BufferDestroy(vd->target->renderer, vd->gpuSolidTriIndexData);
-		vd->gpuSolidTriIndexData = nullptr;
+	if (Render_BufferHandleIsValid(vd->gpuSolidTriIndexData)) {
+		Render_BufferDestroy(vd->renderer, vd->gpuSolidTriIndexData);
 	}
 
-	if (vd->gpuLineIndexData) {
-		Render_BufferDestroy(vd->target->renderer, vd->gpuLineIndexData);
-		vd->gpuLineIndexData = nullptr;
+	if (Render_BufferHandleIsValid(vd->gpuLineIndexData)) {
+		Render_BufferDestroy(vd->renderer, vd->gpuLineIndexData);
 	}
 
-	if (vd->gpuVertexData) {
-		Render_BufferDestroy(vd->target->renderer, vd->gpuVertexData);
-		vd->gpuVertexData = nullptr;
+	if (Render_BufferHandleIsValid(vd->gpuVertexData)) {
+		Render_BufferDestroy(vd->renderer, vd->gpuVertexData);
 	}
 
 	CADT_VectorDestroy(vd->solidTriIndexData);
@@ -517,17 +516,19 @@ void RenderTF_VisualDebugDestroy(RenderTF_VisualDebug *vd) {
 	AL2O3_VisualDebugging = vd->backup;
 	currentTarget = nullptr;
 
-	Os_MutexDestroy(&vd->addPrimMutex);
+	Thread_MutexDestroy(&vd->addPrimMutex);
 
 	MEMORY_FREE(vd);
 }
 
 void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd, Render_GraphicsEncoderHandle encoder) {
 
-	Os::MutexLock lock(&vd->addPrimMutex);
+	Thread::MutexLock lock(&vd->addPrimMutex);
+
+	Render_FrameBuffer const *fb = Render_FrameBufferHandleToPtr(vd->target);
 
 	// upload the uniforms
-	memcpy(&vd->uniforms, vd->target->debugGpuView, sizeof(Render_GpuView));
+	memcpy(&vd->uniforms, fb->debugGpuView, sizeof(Render_GpuView));
 	Render_BufferUpdateDesc uniformUpdate = {
 			&vd->uniforms,
 			0,
@@ -541,19 +542,17 @@ void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd, Render_GraphicsEncoder
 		return;
 	}
 
-
 	// grow the vertex buffer if required
 	if (CADT_VectorSize(vd->vertexData) > vd->gpuVertexDataCount) {
-		if (vd->gpuVertexData) {
-			Render_BufferDestroy(vd->target->renderer, vd->gpuVertexData);
-			vd->gpuVertexData = nullptr;
+		if (Render_BufferHandleIsValid(vd->gpuVertexData)) {
+			Render_BufferDestroy(vd->renderer, vd->gpuVertexData);
 		}
 		Render_BufferVertexDesc vbDesc{
 				(uint32_t) CADT_VectorSize(vd->vertexData),
 				sizeof(Vertex),
 				true
 		};
-		vd->gpuVertexData = Render_BufferCreateVertex(vd->target->renderer, &vbDesc);
+		vd->gpuVertexData = Render_BufferCreateVertex(vd->renderer, &vbDesc);
 		vd->gpuVertexDataCount = vbDesc.vertexCount;
 	}
 
@@ -567,16 +566,15 @@ void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd, Render_GraphicsEncoder
 
 	// line index buffer grow if nessecary
 	if (CADT_VectorSize(vd->lineIndexData) > vd->gpuLineIndexDataCount) {
-		if (vd->gpuLineIndexData) {
-			Render_BufferDestroy(vd->target->renderer, vd->gpuLineIndexData);
-			vd->gpuLineIndexData = nullptr;
+		if (Render_BufferHandleIsValid(vd->gpuLineIndexData)) {
+			Render_BufferDestroy(vd->renderer, vd->gpuLineIndexData);
 		}
 		Render_BufferIndexDesc ibDesc{
 				(uint32_t) CADT_VectorSize(vd->lineIndexData),
 				sizeof(uint32_t),
 				true
 		};
-		vd->gpuLineIndexData = Render_BufferCreateIndex(vd->target->renderer, &ibDesc);
+		vd->gpuLineIndexData = Render_BufferCreateIndex(vd->renderer, &ibDesc);
 		vd->gpuLineIndexDataCount = ibDesc.indexCount;
 	}
 	// update the line index buffer if nessecary
@@ -590,16 +588,15 @@ void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd, Render_GraphicsEncoder
 	}
 	// solid tri index buffer grow if nessecary
 	if (CADT_VectorSize(vd->solidTriIndexData) > vd->gpuSolidTriIndexDataCount) {
-		if (vd->gpuSolidTriIndexData) {
-			Render_BufferDestroy(vd->target->renderer, vd->gpuSolidTriIndexData);
-			vd->gpuSolidTriIndexData = nullptr;
+		if (Render_BufferHandleIsValid(vd->gpuSolidTriIndexData)) {
+			Render_BufferDestroy(vd->renderer, vd->gpuSolidTriIndexData);
 		}
 		Render_BufferIndexDesc ibDesc{
 				(uint32_t) CADT_VectorSize(vd->solidTriIndexData),
 				sizeof(uint32_t),
 				true
 		};
-		vd->gpuSolidTriIndexData = Render_BufferCreateIndex(vd->target->renderer, &ibDesc);
+		vd->gpuSolidTriIndexData = Render_BufferCreateIndex(vd->renderer, &ibDesc);
 		vd->gpuSolidTriIndexDataCount = ibDesc.indexCount;
 	}
 	// update the solid tri index buffer

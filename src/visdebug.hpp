@@ -3,7 +3,7 @@
 #include "al2o3_platform/visualdebug.h"
 #include "render_basics/theforge/api.h"
 #include "al2o3_cadt/vector.h"
-#include "al2o3_os/thread.h"
+#include "al2o3_thread/thread.h"
 
 struct RenderTF_PlatonicSolids;
 
@@ -27,13 +27,13 @@ struct RenderTF_VisualDebug {
 	Render_ShaderHandle shader;
 	Render_RootSignatureHandle rootSignature;
 
-	Render_GraphicsPipelineHandle linePipeline;
-	Render_GraphicsPipelineHandle solidTriPipeline;
+	Render_PipelineHandle linePipeline;
+	Render_PipelineHandle solidTriPipeline;
 
 	Render_DescriptorSetHandle descriptorSet;
 	Render_BufferHandle uniformBuffer;
 
-	Os_Mutex_t addPrimMutex;
+	Thread_Mutex addPrimMutex;
 
 	union {
 		Render_GpuView view;
@@ -43,7 +43,7 @@ struct RenderTF_VisualDebug {
 	AL2O3_VisualDebugging_t backup;
 };
 
-RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_FrameBufferHandle target);
+RenderTF_VisualDebug *RenderTF_VisualDebugCreate(Render_RendererHandle renderer, Render_FrameBufferHandle target);
 void RenderTF_VisualDebugDestroy(RenderTF_VisualDebug *vd);
 
 void RenderTF_VisualDebugRender(RenderTF_VisualDebug *vd, Render_GraphicsEncoderHandle encoder);

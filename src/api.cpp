@@ -132,11 +132,9 @@ AL2O3_EXTERN_C Render_RendererHandle Render_RendererCreate(InputBasic_ContextHan
 	renderer->blitQueue = Render_QueueHandleAlloc();
 
 	ASSERT(sizeof(Render_Queue) == sizeof(TheForge_QueueHandle));
-	{
-		Render_QueueHandleToPtr(renderer->graphicsQueue)->queue = gfxQ;
-		Render_QueueHandleToPtr(renderer->computeQueue)->queue = computeQ;
-		Render_QueueHandleToPtr(renderer->blitQueue)->queue = blitQ;
-	}
+	Render_QueueHandleToPtr(renderer->graphicsQueue)->queue = gfxQ;
+	Render_QueueHandleToPtr(renderer->computeQueue)->queue = computeQ;
+	Render_QueueHandleToPtr(renderer->blitQueue)->queue = blitQ;
 
 	// init TheForge resourceloader
 	TheForge_InitResourceLoaderInterface(renderer->renderer, nullptr);
@@ -149,7 +147,13 @@ AL2O3_EXTERN_C Render_RendererHandle Render_RendererCreate(InputBasic_ContextHan
 AL2O3_EXTERN_C void Render_RendererDestroy(Render_RendererHandle renderer) {
 	if(!renderer) return;
 
-	// remove and stocks that have been allocator
+	// idle everything
+	TheForge_FlushResourceUpdates();
+	TheForge_WaitQueueIdle(Render_QueueHandleToPtr(renderer->graphicsQueue)->queue);
+	TheForge_WaitQueueIdle(Render_QueueHandleToPtr(renderer->computeQueue)->queue);
+	TheForge_WaitQueueIdle(Render_QueueHandleToPtr(renderer->blitQueue)->queue);
+
+	// remove any stocks that have been allocator
 	for (auto i = 0u; i < Render_SBS_COUNT; ++i) {
 		if (Render_BlendStateHandleIsValid(renderer->stockBlendState[i])) {
 			Render_BlendState* bs = Render_BlendStateHandleToPtr(renderer->stockBlendState[i]);
@@ -178,16 +182,15 @@ AL2O3_EXTERN_C void Render_RendererDestroy(Render_RendererHandle renderer) {
 			Render_SamplerHandleRelease(renderer->stockSamplers[i]);
 		}
 	}
+
 	// stock vertex layouts are static and don't need releasing
 
-	{
-		TheForge_RemoveQueue(Render_QueueHandleToPtr(renderer->graphicsQueue)->queue);
-		TheForge_RemoveQueue(Render_QueueHandleToPtr(renderer->computeQueue)->queue);
-		TheForge_RemoveQueue(Render_QueueHandleToPtr(renderer->blitQueue)->queue);
-		Render_QueueHandleRelease(renderer->graphicsQueue);
-		Render_QueueHandleRelease(renderer->computeQueue);
-		Render_QueueHandleRelease(renderer->blitQueue);
-	}
+	TheForge_RemoveQueue(Render_QueueHandleToPtr(renderer->graphicsQueue)->queue);
+	TheForge_RemoveQueue(Render_QueueHandleToPtr(renderer->computeQueue)->queue);
+	TheForge_RemoveQueue(Render_QueueHandleToPtr(renderer->blitQueue)->queue);
+	Render_QueueHandleRelease(renderer->graphicsQueue);
+	Render_QueueHandleRelease(renderer->computeQueue);
+	Render_QueueHandleRelease(renderer->blitQueue);
 
 	TheForge_RemoveCmdPool(renderer->renderer, renderer->blitCmdPool);
 	TheForge_RemoveCmdPool(renderer->renderer, renderer->computeCmdPool);

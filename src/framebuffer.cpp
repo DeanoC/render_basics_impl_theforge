@@ -118,6 +118,16 @@ AL2O3_EXTERN_C void Render_FrameBufferDestroy(Render_RendererHandle renderer, Re
 
 	Render_FrameBuffer* frameBuffer = Render_FrameBufferHandleToPtr(handle);
 
+	TheForge_FenceHandle renderCompleteFences[] = {
+			frameBuffer->renderCompleteFences[0],
+			frameBuffer->renderCompleteFences[1],
+			frameBuffer->renderCompleteFences[2],
+	};
+
+	TheForge_WaitForFences(renderer->renderer, 3, renderCompleteFences);
+
+	TheForge_WaitQueueIdle(Render_QueueHandleToPtr(frameBuffer->presentQueue)->queue);
+
 	Render_GraphicsEncoderHandleRelease(frameBuffer->graphicsEncoder);
 	Render_TextureHandleRelease(frameBuffer->currentColourTarget);
 

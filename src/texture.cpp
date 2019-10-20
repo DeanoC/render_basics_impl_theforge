@@ -144,3 +144,21 @@ AL2O3_EXTERN_C void Render_TextureSyncUpdate(Render_TextureHandle handle, Render
 }
 
 
+AL2O3_EXTERN_C uint32_t Render_TextureGetWidth(Render_TextureHandle handle) {
+	return TheForge_TextureGetWidth(Render_TextureHandleToPtr(handle)->texture);
+}
+AL2O3_EXTERN_C uint32_t Render_TextureGetHeight(Render_TextureHandle handle) {
+	return TheForge_TextureGetHeight(Render_TextureHandleToPtr(handle)->texture);
+}
+AL2O3_EXTERN_C uint32_t Render_TextureGetDepth(Render_TextureHandle handle) {
+	return TheForge_TextureGetDepth(Render_TextureHandleToPtr(handle)->texture);
+}
+AL2O3_EXTERN_C uint32_t Render_TextureGetSliceCount(Render_TextureHandle handle) {
+	return TheForge_TextureGetArraySize(Render_TextureHandleToPtr(handle)->texture);
+}
+AL2O3_EXTERN_C uint32_t Render_TextureGetMipLevelCount(Render_TextureHandle handle) {
+	return TheForge_TextureGetMipLevels(Render_TextureHandleToPtr(handle)->texture);
+}
+AL2O3_EXTERN_C TinyImageFormat Render_TextureGetFormat(Render_TextureHandle handle) {
+	return TheForge_TextureGetFormat(Render_TextureHandleToPtr(handle)->texture);
+}

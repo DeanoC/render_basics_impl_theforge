@@ -14,7 +14,7 @@ AL2O3_EXTERN_C Render_RootSignatureHandle Render_RootSignatureCreate(Render_Rend
 		shaders[i] = Render_ShaderHandleToPtr(desc->shaders[i])->shader;
 	}
 	TheForge_SamplerHandle* samplers = (TheForge_SamplerHandle*) STACK_ALLOC(sizeof(TheForge_SamplerHandle) * desc->staticSamplerCount);
-	for(uint32_t i = 0; desc->staticSamplerCount;++i) {
+	for(uint32_t i = 0; i < desc->staticSamplerCount;++i) {
 		samplers[i] = Render_SamplerHandleToPtr(desc->staticSamplers[i])->sampler;
 	}
 	TheForge_RootSignatureDesc rootSignatureDesc{};

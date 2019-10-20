@@ -52,7 +52,7 @@ AL2O3_EXTERN_C void Render_DescriptorSetDestroy(Render_RendererHandle renderer,
 static void descriptorUpdate(Render_DescriptorSetHandle handle,
 																						 uint32_t setIndex,
 																						 uint32_t numDescriptors,
-																						 Render_DescriptorDesc *desc,
+																						 Render_DescriptorDesc const *desc,
 																						 uint32_t frameIndex ) {
 	TheForge_DescriptorData* dd = (TheForge_DescriptorData *) STACK_ALLOC(sizeof(TheForge_DescriptorData) * numDescriptors);
 	uint64_t *offsets = (uint64_t *) STACK_ALLOC(sizeof(uint64_t) * numDescriptors);
@@ -105,16 +105,16 @@ static void descriptorUpdate(Render_DescriptorSetHandle handle,
 AL2O3_EXTERN_C void 	Render_DescriptorUpdate(Render_DescriptorSetHandle handle,
 																						uint32_t setIndex,
 																						uint32_t numDescriptors,
-																						Render_DescriptorDesc *desc) {
+																						Render_DescriptorDesc const *desc) {
 
 	descriptorUpdate(handle, setIndex, numDescriptors, desc, Render_DescriptorSetHandleToPtr(handle)->renderer->frameIndex);
 }
 
-// optimization that prefiles all the per frame buffers
+// optimization that prefills all the per frame buffers
 AL2O3_EXTERN_C void 	Render_DescriptorPresetFrequencyUpdated(Render_DescriptorSetHandle handle,
 																						 uint32_t setIndex,
 																						 uint32_t numDescriptors,
-																						 Render_DescriptorDesc *desc) {
+																						 Render_DescriptorDesc const *desc) {
 	for(uint32_t i = 0;i < Render_DescriptorSetHandleToPtr(handle)->maxSetsPerFrame;++i) {
 		descriptorUpdate(handle, setIndex, numDescriptors, desc, i);
 	}

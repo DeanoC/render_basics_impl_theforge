@@ -1,2 +1,1 @@
-# template_lib
-Just my template repo
+# Render Basic implemenation using the forage renderer

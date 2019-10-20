@@ -85,9 +85,9 @@ AL2O3_EXTERN_C Render_ShaderHandle Render_ShaderCreate(Render_RendererHandle ren
 
 #if AL2O3_PLATFORM == AL2O3_PLATFORM_APPLE_MAC
 		TheForge_ShaderStageDesc ssdesc {};
-		ssdesc.entryPoint = shaderObjects[i]->entryPoint;
-		ssdesc.code = (char const*)shaderObjects[i]->output.shader;
-		ssdesc.name = shaderObjects[i]->name;
+		ssdesc.entryPoint = shaderObject->entryPoint;
+		ssdesc.code = (char const*)shaderObject->output.shader;
+		ssdesc.name = shaderObject->name;
 		ssdesc.macroCount = 0; // TODO
 //		LOGINFO(ssdesc.code);
 #else

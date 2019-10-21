@@ -4,7 +4,6 @@
 #include "render_basics/theforge/api.h"
 #include "render_basics/api.h"
 #include "render_basics/descriptorset.h"
-#include "al2o3_handle/dynamic.h"
 #include "render_basics/theforge/handlemanager.h"
 
 AL2O3_EXTERN_C Render_DescriptorSetHandle Render_DescriptorSetCreate(Render_RendererHandle renderer,
@@ -39,7 +38,7 @@ AL2O3_EXTERN_C Render_DescriptorSetHandle Render_DescriptorSetCreate(Render_Rend
 
 AL2O3_EXTERN_C void Render_DescriptorSetDestroy(Render_RendererHandle renderer,
 																								Render_DescriptorSetHandle handle) {
-	if (!renderer || handle.handle == Handle_InvalidDynamicHandle32) {
+	if (!renderer || !Render_DescriptorSetHandleIsValid(handle)) {
 		return;
 	}
 

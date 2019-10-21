@@ -102,12 +102,12 @@ static Render_ShaderHandle CreateShaders(RenderTF_VisualDebug *vd) {
 
 	VFile_Handle vfile = VFile_FromMemory(VertexShader, strlen(VertexShader) + 1, false);
 	if (!vfile) {
-		return {Handle_InvalidDynamicHandle32};
+		return {0};
 	}
 	VFile_Handle ffile = VFile_FromMemory(FragmentShader, strlen(FragmentShader) + 1, false);
 	if (!ffile) {
 		VFile_Close(vfile);
-		return {Handle_InvalidDynamicHandle32};
+		return {0};
 	}
 	auto shader = Render_CreateShaderFromVFile(vd->renderer, vfile, "VS_main", ffile, "FS_main");
 

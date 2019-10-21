@@ -1,6 +1,6 @@
 #include "al2o3_platform/platform.h"
 #include "al2o3_memory/memory.h"
-#include "al2o3_handle/dynamic.h"
+#include "al2o3_handle/handle.h"
 
 #include "render_basics/theforge/api.h"
 #include "render_basics/api.h"
@@ -19,26 +19,26 @@ static void CreateHandleManager() {
 	// fixed handle manager might be faster to access (due to no locks)
 
 	// high volume objects - dynamic large blocks
-	hm->buffers = Handle_DynamicManager32Create(sizeof(Render_Buffer), 1024, 256, true);
-	hm->rootSignatures = Handle_DynamicManager32Create(sizeof(Render_RootSignature), 1024, 256, true);
-	hm->textures = Handle_DynamicManager32Create(sizeof(Render_Texture), 1024, 256, true);
-	hm->pipelines = Handle_DynamicManager32Create(sizeof(Render_Pipeline), 1024, 256, true);
-	hm->descriptorSets = Handle_DynamicManager32Create(sizeof(Render_DescriptorSet), 1024, 256, true);
+	hm->buffers = Handle_Manager32Create(sizeof(Render_Buffer), 1024, 256, true);
+	hm->rootSignatures = Handle_Manager32Create(sizeof(Render_RootSignature), 1024, 256, true);
+	hm->textures = Handle_Manager32Create(sizeof(Render_Texture), 1024, 256, true);
+	hm->pipelines = Handle_Manager32Create(sizeof(Render_Pipeline), 1024, 256, true);
+	hm->descriptorSets = Handle_Manager32Create(sizeof(Render_DescriptorSet), 1024, 256, true);
 
 	// medium volume
-	hm->rasteriserStates = Handle_DynamicManager32Create(sizeof(Render_RasteriserState), 256, 8, true);
-	hm->blendStates = Handle_DynamicManager32Create(sizeof(Render_BlendState), 256, 8, true);
-	hm->depthStates = Handle_DynamicManager32Create(sizeof(Render_DepthState), 256, 8, true);
-	hm->samplers = Handle_DynamicManager32Create(sizeof(Render_Sampler), 256, 8, true);
-	hm->shaderObjects = Handle_DynamicManager32Create(sizeof(Render_ShaderObject), 128, 8, true);
-	hm->shaders = Handle_DynamicManager32Create(sizeof(Render_Shader), 64, 8, true);
+	hm->rasteriserStates = Handle_Manager32Create(sizeof(Render_RasteriserState), 256, 8, true);
+	hm->blendStates = Handle_Manager32Create(sizeof(Render_BlendState), 256, 8, true);
+	hm->depthStates = Handle_Manager32Create(sizeof(Render_DepthState), 256, 8, true);
+	hm->samplers = Handle_Manager32Create(sizeof(Render_Sampler), 256, 8, true);
+	hm->shaderObjects = Handle_Manager32Create(sizeof(Render_ShaderObject), 128, 8, true);
+	hm->shaders = Handle_Manager32Create(sizeof(Render_Shader), 64, 8, true);
 
 	// low volume
-	hm->frameBuffers = Handle_DynamicManager32Create(sizeof(Render_FrameBuffer), 16, 4, true);
-	hm->blitEncoders = Handle_DynamicManager32Create(sizeof(Render_BlitEncoder), 16, 4, true);
-	hm->computeEncoders = Handle_DynamicManager32Create(sizeof(Render_ComputeEncoder), 16, 4, true);
-	hm->graphicsEncoders = Handle_DynamicManager32Create(sizeof(Render_GraphicsEncoder), 16, 4, true);
-	hm->queues = Handle_DynamicManager32Create(sizeof(Render_Queue), 8, 4, true);
+	hm->frameBuffers = Handle_Manager32Create(sizeof(Render_FrameBuffer), 16, 4, true);
+	hm->blitEncoders = Handle_Manager32Create(sizeof(Render_BlitEncoder), 16, 4, true);
+	hm->computeEncoders = Handle_Manager32Create(sizeof(Render_ComputeEncoder), 16, 4, true);
+	hm->graphicsEncoders = Handle_Manager32Create(sizeof(Render_GraphicsEncoder), 16, 4, true);
+	hm->queues = Handle_Manager32Create(sizeof(Render_Queue), 8, 4, true);
 
 }
 
@@ -47,22 +47,22 @@ static void DestroyHandleManager() {
 
 	Render_HandleManagerTheForge* hm = g_Render_HandleManagerTheForge;
 
-	Handle_DynamicManager32Destroy(hm->frameBuffers);
-	Handle_DynamicManager32Destroy(hm->blendStates);
-	Handle_DynamicManager32Destroy(hm->blitEncoders);
-	Handle_DynamicManager32Destroy(hm->buffers);
-	Handle_DynamicManager32Destroy(hm->computeEncoders);
-	Handle_DynamicManager32Destroy(hm->depthStates);
-	Handle_DynamicManager32Destroy(hm->descriptorSets);
-	Handle_DynamicManager32Destroy(hm->graphicsEncoders);
-	Handle_DynamicManager32Destroy(hm->queues);
-	Handle_DynamicManager32Destroy(hm->pipelines);
-	Handle_DynamicManager32Destroy(hm->rasteriserStates);
-	Handle_DynamicManager32Destroy(hm->rootSignatures);
-	Handle_DynamicManager32Destroy(hm->samplers);
-	Handle_DynamicManager32Destroy(hm->shaderObjects);
-	Handle_DynamicManager32Destroy(hm->shaders);
-	Handle_DynamicManager32Destroy(hm->textures);
+	Handle_Manager32Destroy(hm->frameBuffers);
+	Handle_Manager32Destroy(hm->blendStates);
+	Handle_Manager32Destroy(hm->blitEncoders);
+	Handle_Manager32Destroy(hm->buffers);
+	Handle_Manager32Destroy(hm->computeEncoders);
+	Handle_Manager32Destroy(hm->depthStates);
+	Handle_Manager32Destroy(hm->descriptorSets);
+	Handle_Manager32Destroy(hm->graphicsEncoders);
+	Handle_Manager32Destroy(hm->queues);
+	Handle_Manager32Destroy(hm->pipelines);
+	Handle_Manager32Destroy(hm->rasteriserStates);
+	Handle_Manager32Destroy(hm->rootSignatures);
+	Handle_Manager32Destroy(hm->samplers);
+	Handle_Manager32Destroy(hm->shaderObjects);
+	Handle_Manager32Destroy(hm->shaders);
+	Handle_Manager32Destroy(hm->textures);
 
 	MEMORY_FREE(hm);
 	g_Render_HandleManagerTheForge = nullptr;
@@ -219,12 +219,12 @@ AL2O3_EXTERN_C char const *Render_RendererGetGPUName(Render_RendererHandle) {
 
 AL2O3_EXTERN_C Render_QueueHandle Render_RendererGetPrimaryQueue(Render_RendererHandle ctx,
 																																 Render_QueueType queueType) {
-	if(!ctx) return { Handle_InvalidDynamicHandle32 };
+	if(!ctx) return { 0 };
 	switch(queueType) {
 		case Render_QT_GRAPHICS: return ctx->graphicsQueue;
 		case Render_QT_COMPUTE: return ctx->computeQueue;
 		case Render_QT_BLITTER: return ctx->blitQueue;
-		default: return { Handle_InvalidDynamicHandle32 };
+		default: return { 0 };
 	}
 }
 

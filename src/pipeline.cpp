@@ -33,7 +33,7 @@ AL2O3_EXTERN_C Render_PipelineHandle Render_GraphicsPipelineCreate(Render_Render
 	TheForge_AddPipeline(renderer->renderer, &pipelineDesc, &pipeline->pipeline);
 	if(!pipeline->pipeline) {
 		Render_PipelineHandleRelease(handle);
-		return { Handle_InvalidDynamicHandle32 };
+		return { 0 };
 	}
 	return handle;
 }
@@ -52,7 +52,7 @@ AL2O3_EXTERN_C Render_PipelineHandle Render_ComputePipelineCreate(Render_Rendere
 	TheForge_AddPipeline(renderer->renderer, &pipelineDesc, &pipeline->pipeline);
 	if(!pipeline->pipeline) {
 		Render_PipelineHandleRelease(handle);
-		return { Handle_InvalidDynamicHandle32 };
+		return { 0 };
 	}
 
 	return handle;
@@ -60,7 +60,7 @@ AL2O3_EXTERN_C Render_PipelineHandle Render_ComputePipelineCreate(Render_Rendere
 
 AL2O3_EXTERN_C void Render_PipelineDestroy(Render_RendererHandle renderer,
 																									 Render_PipelineHandle handle) {
-	if (!renderer || !handle.handle) {
+	if (!renderer || !Render_PipelineHandleIsValid(handle)) {
 		return;
 	}
 	Render_Pipeline* pipeline = Render_PipelineHandleToPtr(handle);

@@ -23,8 +23,8 @@ AL2O3_EXTERN_C Render_TextureHandle Render_TextureSyncCreate(Render_RendererHand
 																														 Render_TextureCreateDesc const *desc) {
 
 	Render_TextureHandle handle = Render_TextureHandleAlloc();
-	if (!handle.handle) {
-		return {Handle_InvalidDynamicHandle32};
+	if (!Render_TextureHandleIsValid(handle)) {
+		return {0};
 	}
 	Render_Texture* texture = Render_TextureHandleToPtr(handle);
 
@@ -55,7 +55,7 @@ AL2O3_EXTERN_C Render_TextureHandle Render_TextureSyncCreate(Render_RendererHand
 		TheForge_AddRenderTarget(renderer->renderer, &rtDesc, &texture->renderTarget);
 		if(!texture->renderTarget) {
 			Render_TextureHandleRelease(handle);
-			return {Handle_InvalidDynamicHandle32};
+			return {0};
 		}
 		texture->texture = TheForge_RenderTargetGetTexture(texture->renderTarget);
 
@@ -86,7 +86,7 @@ AL2O3_EXTERN_C Render_TextureHandle Render_TextureSyncCreate(Render_RendererHand
 		TheForge_AddTexture(renderer->renderer, &texDesc, &texture->texture);
 		if (!texture->texture) {
 			Render_TextureHandleRelease(handle);
-			return {Handle_InvalidDynamicHandle32};
+			return {0};
 		}
 	}
 
@@ -108,7 +108,7 @@ AL2O3_EXTERN_C Render_TextureHandle Render_TextureSyncCreate(Render_RendererHand
 }
 
 AL2O3_EXTERN_C void Render_TextureDestroy(Render_RendererHandle renderer, Render_TextureHandle handle) {
-	if (!renderer || !handle.handle) {
+	if (!renderer || !Render_TextureHandleIsValid(handle)) {
 		return;
 	}
 	Render_Texture* texture = Render_TextureHandleToPtr(handle);

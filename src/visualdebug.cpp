@@ -1,6 +1,5 @@
 #include "al2o3_platform/platform.h"
 #include "al2o3_memory/memory.h"
-#include "al2o3_handle/dynamic.h"
 #include "al2o3_platform/visualdebug.h"
 #include "al2o3_thread/thread.hpp"
 #include "render_basics/theforge/api.h"

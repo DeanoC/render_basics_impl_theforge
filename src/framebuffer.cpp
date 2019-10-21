@@ -1,6 +1,5 @@
 #include "al2o3_platform/platform.h"
 #include "al2o3_memory/memory.h"
-#include "al2o3_handle/dynamic.h"
 #include "gfx_theforge/theforge.h"
 #include "tiny_imageformat/tinyimageformat_query.h"
 #include "gfx_imgui_al2o3_theforge_bindings/bindings.h"
@@ -16,7 +15,7 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 		Render_FrameBufferDesc const *desc) {
 	ASSERT(desc->frameBufferWidth);
 	ASSERT(desc->frameBufferHeight);
-	ASSERT(desc->queue.handle != Handle_InvalidDynamicHandle32);
+	ASSERT(Render_QueueHandleIsValid(desc->queue));
 	ASSERT(desc->platformHandle);
 
 	auto tfrenderer = (TheForge_RendererHandle) renderer->renderer;

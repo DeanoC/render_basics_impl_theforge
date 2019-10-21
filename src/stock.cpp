@@ -79,7 +79,7 @@ AL2O3_EXTERN_C Render_BlendStateHandle Render_GetStockBlendState(Render_Renderer
 		}
 
 		default: ASSERT(false);
-			return {Handle_InvalidDynamicHandle32};
+			return {0};
 	}
 
 	renderer->stockBlendState[stock] = Render_BlendStateHandleAlloc();
@@ -147,7 +147,7 @@ AL2O3_EXTERN_C Render_DepthStateHandle Render_GetStockDepthState(Render_Renderer
 		}
 
 		default: ASSERT(false);
-			return {Handle_InvalidDynamicHandle32};
+			return {0};
 	}
 
 	renderer->stockDepthState[stock] = Render_DepthStateHandleAlloc();
@@ -205,7 +205,7 @@ AL2O3_EXTERN_C Render_RasteriserStateHandle Render_GetStockRasterisationState(Re
 		}
 
 		default: ASSERT(false);
-			return {Handle_InvalidDynamicHandle32};
+			return {0};
 	}
 
 	renderer->stockRasteriserState[stock] = Render_RasteriserStateHandleAlloc();
@@ -249,7 +249,7 @@ AL2O3_EXTERN_C Render_SamplerHandle Render_GetStockSampler(Render_RendererHandle
 			break;
 		}
 		default: ASSERT(false);
-			return {Handle_InvalidDynamicHandle32};
+			return {0};
 	}
 
 	renderer->stockSamplers[stock] = Render_SamplerHandleAlloc();

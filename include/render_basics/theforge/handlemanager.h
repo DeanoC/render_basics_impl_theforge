@@ -1,27 +1,27 @@
 #pragma once
 
 #include "al2o3_platform/platform.h"
-#include "al2o3_handle/dynamic.h"
+#include "al2o3_handle/handle.h"
 #include "render_basics/theforge/api.h"
 
 typedef struct Render_HandleManagerTheForge {
 
-	Handle_DynamicManager32* frameBuffers;
-	Handle_DynamicManager32* blendStates;
-	Handle_DynamicManager32* blitEncoders;
-	Handle_DynamicManager32* buffers;
-	Handle_DynamicManager32* computeEncoders;
-	Handle_DynamicManager32* depthStates;
-	Handle_DynamicManager32* descriptorSets;
-	Handle_DynamicManager32* graphicsEncoders;
-	Handle_DynamicManager32* queues;
-	Handle_DynamicManager32* pipelines;
-	Handle_DynamicManager32* rasteriserStates;
-	Handle_DynamicManager32* rootSignatures;
-	Handle_DynamicManager32* samplers;
-	Handle_DynamicManager32* shaderObjects;
-	Handle_DynamicManager32* shaders;
-	Handle_DynamicManager32* textures;
+	Handle_Manager32* frameBuffers;
+	Handle_Manager32* blendStates;
+	Handle_Manager32* blitEncoders;
+	Handle_Manager32* buffers;
+	Handle_Manager32* computeEncoders;
+	Handle_Manager32* depthStates;
+	Handle_Manager32* descriptorSets;
+	Handle_Manager32* graphicsEncoders;
+	Handle_Manager32* queues;
+	Handle_Manager32* pipelines;
+	Handle_Manager32* rasteriserStates;
+	Handle_Manager32* rootSignatures;
+	Handle_Manager32* samplers;
+	Handle_Manager32* shaderObjects;
+	Handle_Manager32* shaders;
+	Handle_Manager32* textures;
 
 } Render_HandleManagerTheForge;
 
@@ -30,17 +30,17 @@ AL2O3_EXTERN_C Render_HandleManagerTheForge* g_Render_HandleManagerTheForge;
 #define RENDER_HANDLE_BUILD(type, manager) \
 AL2O3_FORCE_INLINE Render_##type##Handle Render_##type##HandleAlloc(void) { \
 	Render_##type##Handle handle; \
-	handle.handle = Handle_DynamicManager32Alloc(g_Render_HandleManagerTheForge->manager); \
+	handle.handle = Handle_Manager32Alloc(g_Render_HandleManagerTheForge->manager); \
 	return handle; \
 } \
 AL2O3_FORCE_INLINE void Render_##type##HandleRelease(Render_##type##Handle handle) { \
-	Handle_DynamicManager32Release(g_Render_HandleManagerTheForge->manager, handle.handle); \
+	Handle_Manager32Release(g_Render_HandleManagerTheForge->manager, handle.handle); \
 } \
 AL2O3_FORCE_INLINE bool Render_##type##HandleIsValid(Render_##type##Handle handle) { \
-	return Handle_DynamicManager32IsValid(g_Render_HandleManagerTheForge->manager, handle.handle); \
+	return Handle_Manager32IsValid(g_Render_HandleManagerTheForge->manager, handle.handle); \
 } \
 AL2O3_FORCE_INLINE Render_##type* Render_##type##HandleToPtr(Render_##type##Handle handle) { \
-	return (Render_##type*) Handle_DynamicManager32HandleToPtr(g_Render_HandleManagerTheForge->manager, handle.handle); \
+	return (Render_##type*) Handle_Manager32HandleToPtr(g_Render_HandleManagerTheForge->manager, handle.handle); \
 }
 
 RENDER_HANDLE_BUILD(FrameBuffer, frameBuffers);

@@ -29,7 +29,7 @@ AL2O3_EXTERN_C Render_RootSignatureHandle Render_RootSignatureCreate(Render_Rend
 	TheForge_AddRootSignature(renderer->renderer, &rootSignatureDesc, &rootSig->signature);
 	if (!rootSig->signature) {
 		Render_RootSignatureHandleRelease(handle);
-		return {Handle_InvalidDynamicHandle32};
+		return {0};
 	}
 
 	return handle;
@@ -37,7 +37,7 @@ AL2O3_EXTERN_C Render_RootSignatureHandle Render_RootSignatureCreate(Render_Rend
 
 AL2O3_EXTERN_C void Render_RootSignatureDestroy(Render_RendererHandle renderer,
 																								Render_RootSignatureHandle handle) {
-	if (!renderer || !handle.handle) {
+	if (!renderer || !Render_RootSignatureHandleIsValid(handle)) {
 		return;
 	}
 

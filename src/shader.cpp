@@ -157,6 +157,9 @@ AL2O3_EXTERN_C Render_ShaderHandle Render_CreateShaderFromVFile(Render_RendererH
 																																char const *vertexEntryPoint,
 																																VFile_Handle fragmentFile,
 																																char const *fragmentEntryPoint) {
+	if(!vertexFile || !fragmentFile) {
+		return {0};
+	}
 
 	Render_ShaderObjectDesc vsod = {
 			Render_ST_VERTEXSHADER,

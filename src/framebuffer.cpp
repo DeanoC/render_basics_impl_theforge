@@ -117,13 +117,7 @@ AL2O3_EXTERN_C void Render_FrameBufferDestroy(Render_RendererHandle renderer, Re
 
 	Render_FrameBuffer* frameBuffer = Render_FrameBufferHandleToPtr(handle);
 
-	TheForge_FenceHandle renderCompleteFences[] = {
-			frameBuffer->renderCompleteFences[0],
-			frameBuffer->renderCompleteFences[1],
-			frameBuffer->renderCompleteFences[2],
-	};
-
-	TheForge_WaitForFences(renderer->renderer, 3, renderCompleteFences);
+	TheForge_WaitForFences(renderer->renderer, frameBuffer->frameBufferCount, frameBuffer->renderCompleteFences);
 
 	TheForge_WaitQueueIdle(Render_QueueHandleToPtr(frameBuffer->presentQueue)->queue);
 
@@ -222,10 +216,10 @@ AL2O3_EXTERN_C void Render_FrameBufferNewFrame(Render_FrameBufferHandle handle) 
 	}
 
 	Render_Texture *tex = Render_TextureHandleToPtr(frameBuffer->currentColourTarget);
-	tex->renderTarget = TheForge_SwapChainGetRenderTarget(frameBuffer->swapChain, frameIndex);
-	tex->texture = TheForge_RenderTargetGetTexture(tex->renderTarget);
 	Render_GraphicsEncoder* encoder = Render_GraphicsEncoderHandleToPtr(frameBuffer->graphicsEncoder);
 
+	tex->renderTarget = TheForge_SwapChainGetRenderTarget(frameBuffer->swapChain, frameIndex);
+	tex->texture = TheForge_RenderTargetGetTexture(tex->renderTarget);
 	encoder->cmd = frameBuffer->frameCmds[frameIndex];
 	encoder->view = Render_View{};
 

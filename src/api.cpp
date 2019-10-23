@@ -80,7 +80,7 @@ AL2O3_EXTERN_C Render_RendererHandle Render_RendererCreate(InputBasic_ContextHan
 	}
 
 	renderer->input = input;
-	renderer->maxFramesAhead = 3;
+	renderer->maxFramesAhead = 2; // TODO fix MacOs bug if 3
 
 	// window and renderer setup
 	TheForge_RendererDesc desc{

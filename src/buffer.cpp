@@ -103,12 +103,13 @@ AL2O3_EXTERN_C void Render_BufferDestroy(Render_RendererHandle renderer, Render_
 AL2O3_EXTERN_C void Render_BufferUpload(Render_BufferHandle handle, Render_BufferUpdateDesc const *update) {
 
 	Render_Buffer* buffer = Render_BufferHandleToPtr(handle);
+	uint32_t const frameIndex = Render_RendererGetFrameIndex(buffer->renderer);
 
 	TheForge_BufferUpdateDesc const tfUpdate{
 			buffer->buffer,
 			update->data,
 			0,
-			(Render_RendererGetFrameIndex(buffer->renderer) * buffer->size) + update->dstOffset,
+			(frameIndex * buffer->size) + update->dstOffset,
 			update->size
 	};
 

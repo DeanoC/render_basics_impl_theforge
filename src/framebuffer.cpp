@@ -354,3 +354,13 @@ AL2O3_EXTERN_C Math_Vec4U32 Render_FrameBufferEntireScissor(Render_FrameBufferHa
 	ASSERT(frameBuffer->entireScissor.w > 0);
 	return frameBuffer->entireScissor;
 }
+
+AL2O3_EXTERN_C float const* Render_FrameBufferImguiScaleOffsetMatrix(Render_FrameBufferHandle handle) {
+	Render_FrameBuffer* frameBuffer = Render_FrameBufferHandleToPtr(handle);
+
+	if (frameBuffer->imguiBindings) {
+		return ImguiBindings_GetScaleOffsetMatrix(frameBuffer->imguiBindings);
+	} else {
+		return nullptr;
+	}
+}

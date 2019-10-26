@@ -36,7 +36,7 @@ AL2O3_FORCE_INLINE Render_##type##Handle Render_##type##HandleAlloc(void) { \
 AL2O3_FORCE_INLINE void Render_##type##HandleRelease(Render_##type##Handle handle) { \
 	Handle_Manager32Release(g_Render_HandleManagerTheForge->manager, handle.handle); \
 } \
-AL2O3_FORCE_INLINE bool Render_##type##HandleIsValid(Render_##type##Handle handle) { \
+AL2O3_EXTERN_C inline bool Render_##type##HandleIsValid(Render_##type##Handle handle) { \
 	return Handle_Manager32IsValid(g_Render_HandleManagerTheForge->manager, handle.handle); \
 } \
 AL2O3_FORCE_INLINE Render_##type* Render_##type##HandleToPtr(Render_##type##Handle handle) { \

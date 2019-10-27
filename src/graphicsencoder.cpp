@@ -100,22 +100,40 @@ AL2O3_EXTERN_C void Render_GraphicsEncoderBindVertexBuffer(Render_GraphicsEncode
 	Render_GraphicsEncoder* encoder = Render_GraphicsEncoderHandleToPtr(handle);
 	Render_Buffer* buffer = Render_BufferHandleToPtr(vertexBufferHandle);
 
-	TheForge_CmdBindVertexBuffer(encoder->cmd, 1, &buffer->buffer, &offset);
+	uint64_t actualOffset = offset;
+	if(buffer->frequentlyUpdated) {
+		uint32_t const frameIndex = Render_RendererGetFrameIndex(buffer->renderer);
+		actualOffset += (frameIndex * buffer->size);
+	}
 
+	TheForge_CmdBindVertexBuffer(encoder->cmd, 1, &buffer->buffer, &actualOffset);
 }
 AL2O3_EXTERN_C void Render_GraphicsEncoderBindVertexBuffers(Render_GraphicsEncoderHandle handle,
 																														uint32_t vertexBufferCount,
 																														Render_BufferHandle *vertexBuffers,
 																														uint64_t *offsets) {
+	if(vertexBufferCount == 0 || vertexBufferCount >=16) {
+		return;
+	}
+
 	TheForge_BufferHandle buffers[16];
+	uint64_t actualOffsets[16];
 
 	for (uint32_t i = 0; i < vertexBufferCount; ++i) {
-		buffers[i] = Render_BufferHandleToPtr(vertexBuffers[i])->buffer;
+		Render_Buffer const* buf = (Render_Buffer const*) Render_BufferHandleToPtr(vertexBuffers[i]);
+		buffers[i] = buf->buffer;
+		actualOffsets[i] = 0;
+		if(buf->frequentlyUpdated) {
+			uint32_t const frameIndex = Render_RendererGetFrameIndex(buf->renderer);
+			actualOffsets[i] += (frameIndex * buf->size);
+		}
+		if(offsets) {
+			actualOffsets[i] += offsets[i];
+		}
 	}
 
 	Render_GraphicsEncoder* encoder = Render_GraphicsEncoderHandleToPtr(handle);
-
-	TheForge_CmdBindVertexBuffer(encoder->cmd, vertexBufferCount, buffers, offsets);
+	TheForge_CmdBindVertexBuffer(encoder->cmd, vertexBufferCount, buffers, actualOffsets);
 
 }
 
@@ -125,7 +143,13 @@ AL2O3_EXTERN_C void Render_GraphicsEncoderBindIndexBuffer(Render_GraphicsEncoder
 	Render_GraphicsEncoder* encoder = Render_GraphicsEncoderHandleToPtr(handle);
 	Render_Buffer* buffer = Render_BufferHandleToPtr(indexBufferHandle);
 
-	TheForge_CmdBindIndexBuffer(encoder->cmd, buffer->buffer, offset);
+	uint64_t actualOffset = offset;
+	if(buffer->frequentlyUpdated) {
+		uint32_t const frameIndex = Render_RendererGetFrameIndex(buffer->renderer);
+		actualOffset += (frameIndex * buffer->size);
+	}
+
+	TheForge_CmdBindIndexBuffer(encoder->cmd, buffer->buffer, actualOffset);
 
 }
 

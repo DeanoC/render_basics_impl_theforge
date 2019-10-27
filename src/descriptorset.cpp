@@ -54,7 +54,9 @@ static void descriptorUpdate(Render_DescriptorSetHandle handle,
 																						 Render_DescriptorDesc const *desc,
 																						 uint32_t frameIndex ) {
 	TheForge_DescriptorData* dd = (TheForge_DescriptorData *) STACK_ALLOC(sizeof(TheForge_DescriptorData) * numDescriptors);
+	memset(dd, 0, sizeof(TheForge_DescriptorData) * numDescriptors);
 	uint64_t *offsets = (uint64_t *) STACK_ALLOC(sizeof(uint64_t) * numDescriptors);
+	memset(offsets, 0, sizeof(uint64_t) * numDescriptors);
 
 	TheForge_TextureHandle* textures = (TheForge_TextureHandle*) STACK_ALLOC(sizeof(TheForge_TextureHandle) * numDescriptors);
 	TheForge_BufferHandle* buffers = (TheForge_BufferHandle*) STACK_ALLOC(sizeof(TheForge_BufferHandle) * numDescriptors);

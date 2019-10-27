@@ -454,7 +454,7 @@ bool RenderTF_PlatonicSolidsCreate(RenderTF_VisualDebug *vd) {
 
 					{TheForge_SS_TEXCOORD0, 12, "INSTANCEROW", TinyImageFormat_R32G32B32A32_SFLOAT, 1, 0, 0, TheForge_VAR_INSTANCE },
 					{TheForge_SS_TEXCOORD1, 12, "INSTANCEROW", TinyImageFormat_R32G32B32A32_SFLOAT, 1, 1, sizeof(float)*4, TheForge_VAR_INSTANCE },
-					{TheForge_SS_TEXCOORD2, 12, "INSTANCEROW", TinyImageFormat_R32G32B32A32_SFLOAT, 1, 2, sizeof(float)*4, TheForge_VAR_INSTANCE }
+					{TheForge_SS_TEXCOORD2, 12, "INSTANCEROW", TinyImageFormat_R32G32B32A32_SFLOAT, 1, 2, sizeof(float)*8, TheForge_VAR_INSTANCE }
 			}
 	};
 	TinyImageFormat colourFormats[] = {Render_FrameBufferColourFormat(vd->target)};
@@ -584,14 +584,14 @@ void RenderTF_PlatonicSolidsRender(RenderTF_VisualDebug *vd, Render_GraphicsEnco
 			solid->gpuInstanceData = Render_BufferCreateVertex(vd->renderer, &ibDesc);
 			solid->gpuCount = count;
 		}
-		// upload the instance data
-		Render_BufferUpdateDesc uniformUpdate = {
-				CADT_VectorData(solid->instanceData),
-				0,
-				sizeof(Instance) * count
-		};
 		if(count) {
-			Render_BufferUpload(solid->gpuInstanceData, &uniformUpdate);
+			// upload the instance data
+			Render_BufferUpdateDesc instanceUpdate = {
+					CADT_VectorData(solid->instanceData),
+					0,
+					sizeof(Instance) * count
+			};
+			Render_BufferUpload(solid->gpuInstanceData, &instanceUpdate);
 
 			Render_BufferHandle vertexBuffers[] = {ps->gpuVertexData, solid->gpuInstanceData};
 			Render_GraphicsEncoderBindVertexBuffers(encoder, 2, vertexBuffers, nullptr);

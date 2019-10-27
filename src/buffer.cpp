@@ -14,6 +14,7 @@ AL2O3_EXTERN_C Render_BufferHandle Render_BufferCreateVertex(Render_RendererHand
 	Render_Buffer* buffer = Render_BufferHandleToPtr(handle);
 	buffer->renderer = renderer;
 	buffer->size = desc->vertexCount * desc->vertexSize;
+	buffer->frequentlyUpdated = desc->frequentlyUpdated;
 	TheForge_BufferDesc const vbDesc{
 			buffer->size * (desc->frequentlyUpdated ? renderer->maxFramesAhead : 1),
 			desc->frequentlyUpdated ? TheForge_RMU_CPU_TO_GPU : TheForge_RMU_GPU_ONLY,
@@ -42,6 +43,7 @@ AL2O3_EXTERN_C Render_BufferHandle Render_BufferCreateIndex(Render_RendererHandl
 	Render_Buffer* buffer = Render_BufferHandleToPtr(handle);
 	buffer->renderer = renderer;
 	buffer->size = desc->indexCount * desc->indexSize;
+	buffer->frequentlyUpdated = desc->frequentlyUpdated;
 
 	TheForge_BufferDesc const ibDesc{
 			buffer->size * (desc->frequentlyUpdated ? renderer->maxFramesAhead : 1),
@@ -67,9 +69,9 @@ AL2O3_EXTERN_C Render_BufferHandle Render_BufferCreateUniform(Render_RendererHan
 	Render_BufferHandle handle = Render_BufferHandleAlloc();
 
 	Render_Buffer* buffer = Render_BufferHandleToPtr(handle);
-
 	buffer->renderer = renderer;
 	buffer->size = desc->size;
+	buffer->frequentlyUpdated = desc->frequentlyUpdated;
 
 	TheForge_BufferDesc const ubDesc{
 			buffer->size * (desc->frequentlyUpdated ? renderer->maxFramesAhead : 1),
@@ -97,19 +99,23 @@ AL2O3_EXTERN_C void Render_BufferDestroy(Render_RendererHandle renderer, Render_
 	Render_Buffer* buffer = Render_BufferHandleToPtr(handle);
 	TheForge_RemoveBuffer(renderer->renderer, buffer->buffer);
 	Render_BufferHandleRelease(handle);
-
 }
 
 AL2O3_EXTERN_C void Render_BufferUpload(Render_BufferHandle handle, Render_BufferUpdateDesc const *update) {
 
 	Render_Buffer* buffer = Render_BufferHandleToPtr(handle);
-	uint32_t const frameIndex = Render_RendererGetFrameIndex(buffer->renderer);
+
+	uint64_t dstOffset = update->dstOffset;
+	if(buffer->frequentlyUpdated) {
+		uint32_t const frameIndex = Render_RendererGetFrameIndex(buffer->renderer);
+		dstOffset += (frameIndex * buffer->size);
+	}
 
 	TheForge_BufferUpdateDesc const tfUpdate{
 			buffer->buffer,
 			update->data,
 			0,
-			(frameIndex * buffer->size) + update->dstOffset,
+			dstOffset,
 			update->size
 	};
 

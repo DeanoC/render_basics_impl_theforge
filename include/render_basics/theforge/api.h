@@ -53,6 +53,7 @@ typedef struct Render_Buffer {
 	TheForge_BufferHandle buffer;
 
 	uint64_t size; // size of a single frame, total size = maxFrame * size
+	bool frequentlyUpdated;
 } Render_Buffer;
 
 typedef struct Render_ComputeEncoder {

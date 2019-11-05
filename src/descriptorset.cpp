@@ -84,8 +84,6 @@ static void descriptorUpdate(Render_DescriptorSetHandle handle,
 				dd[i].pBuffers = &buffers[i];
 				break;
 			}
-			case Render_DT_ROOT_CONSTANT: dd[i].pRootConstant = &desc[i].rootConstant;
-				break;
 		}
 	}
 

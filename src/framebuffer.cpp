@@ -41,13 +41,9 @@ AL2O3_EXTERN_C Render_FrameBufferHandle Render_FrameBufferCreate(
 
 	TheForge_AddCmd_n( fb->commandPool, false, fb->frameBufferCount, &fb->frameCmds);
 
-	TheForge_WindowsDesc windowDesc;
-	memset(&windowDesc, 0, sizeof(TheForge_WindowsDesc));
-	windowDesc.handle = desc->platformHandle;
-
 	TheForge_QueueHandle qs[] = {Render_QueueHandleToPtr(desc->queue)->queue};
 	TheForge_SwapChainDesc swapChainDesc;
-	swapChainDesc.pWindow = &windowDesc;
+	swapChainDesc.window = desc->platformHandle;
 	swapChainDesc.presentQueueCount = 1;
 	swapChainDesc.pPresentQueues = qs;
 	swapChainDesc.width = desc->frameBufferWidth;
@@ -168,11 +164,8 @@ AL2O3_EXTERN_C void Render_FrameBufferResize(Render_FrameBufferHandle handle, ui
 
 	TheForge_QueueHandle qs[] = { Render_QueueHandleToPtr(frameBuffer->presentQueue)->queue };
 	TheForge_SwapChainDesc swapChainDesc;
-	TheForge_WindowsDesc windowDesc;
-	memset(&windowDesc, 0, sizeof(TheForge_WindowsDesc));
-	windowDesc.handle = frameBuffer->platformHandle;
 
-	swapChainDesc.pWindow = &windowDesc;
+	swapChainDesc.window = frameBuffer->platformHandle;
 	swapChainDesc.presentQueueCount = 1;
 	swapChainDesc.pPresentQueues = qs;
 	swapChainDesc.width = width;

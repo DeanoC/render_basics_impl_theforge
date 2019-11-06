@@ -142,4 +142,3 @@ typedef struct Render_Renderer {
 } Render_Renderer;
 
 
-static const int UNIFORM_BUFFER_MIN_SIZE = 256; // minimum size allowed

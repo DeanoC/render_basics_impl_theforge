@@ -104,7 +104,9 @@ AL2O3_EXTERN_C Render_BufferHandle Render_BufferCreateUniform(Render_RendererHan
 
 
 AL2O3_EXTERN_C void Render_BufferDestroy(Render_RendererHandle renderer, Render_BufferHandle handle) {
-
+	if(!Render_BufferHandleIsValid(handle)) {
+		return;
+	}
 	Render_Buffer* buffer = Render_BufferHandleToPtr(handle);
 	TheForge_RemoveBuffer(renderer->renderer, buffer->buffer);
 	Render_BufferHandleRelease(handle);

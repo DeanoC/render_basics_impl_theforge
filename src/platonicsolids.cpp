@@ -1,4 +1,5 @@
 #include "al2o3_platform/platform.h"
+#include "al2o3_platform/utf8.h"
 #include "al2o3_cadt/vector.h"
 #include "render_basics/buffer.h"
 #include "render_basics/pipeline.h"
@@ -100,11 +101,11 @@ static Render_ShaderHandle CreateShaders(RenderTF_VisualDebug *vd) {
 	static char const *const vertEntryPoint = "VS_main";
 	static char const *const fragEntryPoint = "FS_main";
 
-	VFile_Handle vfile = VFile_FromMemory(VertexShader, strlen(VertexShader) + 1, false);
+	VFile_Handle vfile = VFile_FromMemory(VertexShader, utf8size(VertexShader) + 1, false);
 	if (!vfile) {
 		return {0};
 	}
-	VFile_Handle ffile = VFile_FromMemory(FragmentShader, strlen(FragmentShader) + 1, false);
+	VFile_Handle ffile = VFile_FromMemory(FragmentShader, utf8size(FragmentShader) + 1, false);
 	if (!ffile) {
 		VFile_Close(vfile);
 		return {0};

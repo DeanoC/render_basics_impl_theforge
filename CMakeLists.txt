@@ -20,27 +20,7 @@ set(ImplName theforge)
 set(LibName ${BaseInterfaceName}_impl_${ImplName})
 project(${LibName})
 
-set(Interface
-		api.h
-		)
-set(Src
-		api.cpp
-		blitencoder.cpp
-		buffer.cpp
-		computeencoder.cpp
-		descriptorset.cpp
-		framebuffer.cpp
-		graphicsencoder.cpp
-		pipeline.cpp
-		shader.cpp
-		stock.cpp
-		texture.cpp
-		rootsignature.cpp
-		view.cpp
-		visualdebug.cpp
-		visdebug.hpp
-		platonicsolids.cpp
-		)
+file(GLOB_RECURSE Src CONFIGURE_DEPENDS include/*.h include/*.hpp src/*.c src/*.cpp)
 
 set(Deps
 		al2o3_platform
@@ -52,4 +32,4 @@ set(Deps
 		gfx_shadercompiler
 		gfx_imgui_al2o3_theforge_bindings
 		)
-ADD_LINK_TIME_IMPL(${BaseInterfaceName} ${ImplName} "${Interface}" "${Src}" "${Deps}")
+ADD_LINK_TIME_IMPL2(${BaseInterfaceName} ${ImplName} "${Src}" "${Deps}")

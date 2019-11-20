@@ -357,3 +357,16 @@ AL2O3_EXTERN_C float const* Render_FrameBufferImguiScaleOffsetMatrix(Render_Fram
 		return nullptr;
 	}
 }
+
+AL2O3_EXTERN_C void Render_FrameBufferDescribeROPLayout(Render_FrameBufferHandle handle, Render_ROPLayout* out) {
+	ASSERT(out);
+
+	Render_FrameBuffer* frameBuffer = Render_FrameBufferHandleToPtr(handle);
+	out->depthFormat = TinyImageFormat_UNDEFINED;
+	out->depthType = Render_RDT_Z;
+
+	out->colourFormatCount = 1;
+	out->colourFormats[0] = frameBuffer->colourBufferFormat;
+	out->colourTypes[0] = Render_RCT_RGB_LDR; // TODO HDR + dest alpha?
+
+}

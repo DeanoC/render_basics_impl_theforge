@@ -349,6 +349,24 @@ AL2O3_EXTERN_C Render_VertexLayoutHandle Render_GetStockVertexLayout(Render_Rend
 			}
 	};
 
+	static TheForge_VertexLayout const vertexLayout3DNormalUV{
+			3,
+			{
+					{TheForge_SS_POSITION, 8, "POSITION", TinyImageFormat_R32G32B32_SFLOAT, 0, 0, 0},
+					{TheForge_SS_NORMAL, 9, "NORMAL", TinyImageFormat_R32G32B32_SFLOAT, 0, 1, sizeof(float) * 3},
+					{TheForge_SS_TEXCOORD0, 10, "TEXCOORD", TinyImageFormat_R32G32_SFLOAT, 0, 2, sizeof(float) * 6},
+			}
+	};
+
+	static TheForge_VertexLayout const vertexLayout3DUV{
+			2,
+			{
+					{TheForge_SS_POSITION, 8, "POSITION", TinyImageFormat_R32G32B32_SFLOAT, 0, 0, 0},
+					{TheForge_SS_TEXCOORD0, 9, "TEXCOORD", TinyImageFormat_R32G32_SFLOAT, 0, 1, sizeof(float) * 3},
+			}
+	};
+
+
 	switch (stock) {
 		case Render_SVL_2D_COLOUR: renderer->stockVertexLayouts[stock] = &vertexLayout2DPackedColour;
 			break;
@@ -369,6 +387,10 @@ AL2O3_EXTERN_C Render_VertexLayoutHandle Render_GetStockVertexLayout(Render_Rend
 		case Render_SVL_3D_NORMAL: renderer->stockVertexLayouts[stock] = &vertexLayout3DNormal;
 			break;
 		case Render_SVL_3D_NORMAL_COLOUR: renderer->stockVertexLayouts[stock] = &vertexLayout3DNormalPackedColour;
+			break;
+		case Render_SVL_3D_NORMAL_UV: renderer->stockVertexLayouts[stock] = &vertexLayout3DNormalUV;
+			break;
+		case Render_SVL_3D_UV: renderer->stockVertexLayouts[stock] = &vertexLayout3DUV;
 			break;
 		case Render_SVL_COUNT: ASSERT(false);
 			return nullptr;
